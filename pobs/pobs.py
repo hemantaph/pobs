@@ -4,7 +4,7 @@ import corner
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 
-from ler.utils import (
+from .utils import (
     load_json, 
     save_json, 
     load_hdf5, 

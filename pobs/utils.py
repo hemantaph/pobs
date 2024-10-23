@@ -1,13 +1,245 @@
 import os
+import random
 import numpy as np
 from importlib import resources
 import itertools
-import random
+
 from scipy.special import comb
 import pickle
+import json
+import h5py
 import bilby
 
-from ler.utils import load_json, save_json, load_hdf5, save_hdf5, load_pickle, save_pickle
+class NumpyEncoder(json.JSONEncoder):
+    """
+    Class for storing a numpy.ndarray or any nested-list composition as JSON file. This is required for dealing np.nan and np.inf.
+
+    Parameters
+    ----------
+    json.JSONEncoder : `class`
+        class for encoding JSON file
+
+    Returns
+    ----------
+    json.JSONEncoder.default : `function`
+        function for encoding JSON file
+
+    Example
+    ----------
+    >>> import numpy as np
+    >>> import json
+    >>> from ler import helperroutines as hr
+    >>> # create a dictionary
+    >>> param = {'a': np.array([1,2,3]), 'b': np.array([4,5,6])}
+    >>> # save the dictionary as json file
+    >>> with open('param.json', 'w') as f:
+    >>>     json.dump(param, f, cls=hr.NumpyEncoder)
+    >>> # load the dictionary from json file
+    >>> with open('param.json', 'r') as f:
+    >>>     param = json.load(f)
+    >>> # print the dictionary
+    >>> print(param)
+    {'a': [1, 2, 3], 'b': [4, 5, 6]}
+    """
+
+    def default(self, obj):
+        """function for encoding JSON file"""
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
+
+def load_pickle(file_name):
+    """Load a pickle file.
+
+    Parameters
+    ----------
+    file_name : `str`
+        pickle file name for storing the parameters.
+
+    Returns
+    ----------
+    param : `dict`
+    """
+    with open(file_name, "rb") as handle:
+        param = pickle.load(handle)
+
+    return param
+
+def save_pickle(file_name, param):
+    """Save a dictionary as a pickle file.
+
+    Parameters
+    ----------
+    file_name : `str`
+        pickle file name for storing the parameters.
+    param : `dict`
+        dictionary to be saved as a pickle file.
+    """
+    with open(file_name, "wb") as handle:
+        pickle.dump(param, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+# hdf5
+def load_hdf5(file_name):
+    """Load a hdf5 file.
+
+    Parameters
+    ----------
+    file_name : `str`
+        hdf5 file name for storing the parameters.
+
+    Returns
+    ----------
+    param : `dict`
+    """
+
+    return h5py.File(file_name, 'r')
+
+def save_hdf5(file_name, param):
+    """Save a dictionary as a hdf5 file.
+
+    Parameters
+    ----------
+    file_name : `str`
+        hdf5 file name for storing the parameters.
+    param : `dict`
+        dictionary to be saved as a hdf5 file.
+    """
+    with h5py.File(file_name, 'w') as f:
+        for key, value in param.items():
+            f.create_dataset(key, data=value)
+
+def load_json(file_name):
+    """Load a json file.
+
+    Parameters
+    ----------
+    file_name : `str`
+        json file name for storing the parameters.
+
+    Returns
+    ----------
+    param : `dict`
+    """
+    with open(file_name, "r", encoding="utf-8") as f:
+        param = json.load(f)
+
+    return param
+
+def save_json(file_name, param):
+    """Save a dictionary as a json file.
+
+    Parameters
+    ----------
+    file_name : `str`
+        json file name for storing the parameters.
+    param : `dict`
+        dictionary to be saved as a json file.
+    """
+    with open(file_name, "w", encoding="utf-8") as write_file:
+        json.dump(param, write_file)
+
+def append_json(file_name, new_dictionary, old_dictionary=None, replace=False):
+    """
+    Append (values with corresponding keys) and update a json file with a dictionary. There are four options:
+
+    1. If old_dictionary is provided, the values of the new dictionary will be appended to the old dictionary and save in the 'file_name' json file.
+    2. If replace is True, replace the json file (with the 'file_name') content with the new_dictionary.
+    3. If the file does not exist, create a new one with the new_dictionary.
+    4. If none of the above, append the new dictionary to the content of the json file.
+
+    Parameters
+    ----------
+    file_name : `str`
+        json file name for storing the parameters. 
+    new_dictionary : `dict`
+        dictionary to be appended to the json file.
+    old_dictionary : `dict`, optional
+        If provided the values of the new dictionary will be appended to the old dictionary and save in the 'file_name' json file. 
+        Default is None.
+    replace : `bool`, optional
+        If True, replace the json file with the dictionary. Default is False.
+
+    """
+
+    # check if the file exists
+    # time
+    # start = datetime.datetime.now()
+    if old_dictionary:
+        data = old_dictionary
+    elif replace:
+        data = new_dictionary
+    elif not os.path.exists(file_name):
+        #print(f" {file_name} file does not exist. Creating a new one...")
+        replace = True
+        data = new_dictionary
+    else:
+        #print("getting data from file")
+        with open(file_name, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    # end = datetime.datetime.now()
+    # print(f"Time taken to load the json file: {end-start}")
+
+    # start = datetime.datetime.now()
+    if not replace:
+        data = add_dictionaries_together(data, new_dictionary)
+        # data_key = data.keys()
+        # for key, value in new_dictionary.items():
+        #     if key in data_key:
+        #         data[key] = np.concatenate((data[key], value)).tolist()
+    # end = datetime.datetime.now()
+    # print(f"Time taken to append the dictionary: {end-start}")
+
+    # save the dictionary
+    # start = datetime.datetime.now()
+    #print(data)
+    with open(file_name, "w", encoding="utf-8") as write_file:
+        json.dump(data, write_file, indent=4, cls=NumpyEncoder)
+    # end = datetime.datetime.now()
+    # print(f"Time taken to save the json file: {end-start}")
+
+    return data
+
+# def add_dict_values(dict1, dict2):
+#     """Adds the values of two dictionaries together.
+    
+#     Parameters
+#     ----------
+#     dict1 : `dict`
+#         dictionary to be added.
+#     dict2 : `dict`
+#         dictionary to be added.
+
+#     Returns
+#     ----------
+#     dict1 : `dict`
+#         dictionary with added values.
+#     """
+#     data_key = dict1.keys()
+#     for key, value in dict2.items():
+#         if key in data_key:
+#             dict1[key] = np.concatenate((dict1[key], value))
+
+    return dict1
+
+def get_param_from_json(json_file):
+    """
+    Function to get the parameters from json file.
+
+    Parameters
+    ----------
+    json_file : `str`
+        json file name for storing the parameters.
+
+    Returns
+    ----------
+    param : `dict`
+    """
+    with open(json_file, "r", encoding="utf-8") as f:
+        param = json.load(f)
+
+    for key, value in param.items():
+        param[key] = np.array(value)
+    return param
 
 
 def get_dict_or_file(path):

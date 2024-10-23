@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from ler.utils import get_param_from_json, save_json, load_json
+from .utils import get_param_from_json, save_json, load_json
 import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
 import jax.numpy as jnp
