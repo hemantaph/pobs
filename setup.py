@@ -27,7 +27,7 @@ setup(
         'pobs': ['data/*.json', 'data/*.pkl', 'data/*.h5'],
       },
     install_requires=[
-        "ler>=0.4.1",
+        #"ler>=0.4.1",
         # sklearn
         # tensorflow
     ],
