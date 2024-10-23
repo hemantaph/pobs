@@ -27,6 +27,11 @@ setup(
         'pobs': ['data/*.json', 'data/*.pkl', 'data/*.h5'],
       },
     install_requires=[
+        "bilby",
+        "gwpy",
+        "lalsuite",
+        "h5py",
+        "scikit-learn",
         #"ler>=0.4.1",
         # sklearn
         # tensorflow

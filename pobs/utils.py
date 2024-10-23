@@ -219,7 +219,7 @@ def append_json(file_name, new_dictionary, old_dictionary=None, replace=False):
 #         if key in data_key:
 #             dict1[key] = np.concatenate((dict1[key], value))
 
-    return dict1
+#     return dict1
 
 def get_param_from_json(json_file):
     """
