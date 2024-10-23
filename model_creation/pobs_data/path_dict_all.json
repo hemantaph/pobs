@@ -1,0 +1,1 @@
+{"astro_lensed": {"model_path": "./pobs_data/model_path_astro_lensed.pkl", "scaler_path": "./pobs_data/scaler_path_astro_lensed.pkl", "min_max_path": "./pobs_data/min_max_path_astro_lensed.pkl", "label_list": ["mass_1", "mass_2", "ra", "sindec", "costheta_jn", "chi_eff", "log10_dl_1", "log10_dl_2", "log10_dt_12_days"], "bandwidth_factor": 0.25}}
