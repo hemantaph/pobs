@@ -1,4 +1,5 @@
 import os
+from multiprocessing import Pool
 import numpy as np
 import corner
 import matplotlib.pyplot as plt
@@ -9,6 +10,10 @@ from .utils import (
     save_json, 
     load_hdf5, 
     save_hdf5,
+)
+
+from .mp import (
+    bayes_factor_multiprocessing,
 )
 
 from .modelgenerator import ModelGenerator
@@ -36,6 +41,8 @@ class POBS():
         pobs_directory="./pobs_data",
         create_new=False,
         spin_zero=False,
+        # new_posterior1=True,
+        # new_posterior2=True,
         **kwargs
     ):
 
@@ -269,71 +276,112 @@ class POBS():
 
     def po_hemanta_numerator(self, sample_size=100000):
 
-        data_posterior_combine = self.posterior_combine.resample(sample_size)
+        result_size = 0 
+        sample_size_original = sample_size
+        blu_numerator = np.array([])
+        while result_size < sample_size_original:
+            # print('numerator', result_size)
+            # print('sample_size', sample_size)
+            # resample
+            data_posterior_combine = self.posterior_combine.resample(sample_size)
 
-        # posterior1
-        data_dict1 = data_posterior_combine.copy()
-        data_dict1['log10_dl'] = data_posterior_combine['log10_dl_1']
-        del data_dict1['log10_dl_1'], data_dict1['log10_dl_2']
-        # posterior2
-        data_dict2 = data_dict1.copy()
-        data_dict2['log10_dl'] = data_posterior_combine['log10_dl_2']
-        # atrso_lensed
-        data_dict3 = data_posterior_combine.copy()
-        data_dict3['log10_dt_12_days'] = self.log_dt_12_days*np.ones(sample_size)
-        # pe_prior
-        # data_dict4 = data_dict1.copy()
-        # data_dict5 = data_dict2.copy()
-        # posterior_combine
-        # data_dict6 = data_posterior_combine.copy()
+            # posterior1
+            data_dict1 = data_posterior_combine.copy()
+            data_dict1['log10_dl'] = data_posterior_combine['log10_dl_1']
+            del data_dict1['log10_dl_1'], data_dict1['log10_dl_2']
+            # posterior2
+            data_dict2 = data_dict1.copy()
+            data_dict2['log10_dl'] = data_posterior_combine['log10_dl_2']
+            # atrso_lensed
+            data_dict3 = data_posterior_combine.copy()
+            data_dict3['log10_dt_12_days'] = self.log_dt_12_days*np.ones(sample_size)
+            # pe_prior
+            # data_dict4 = data_dict1.copy()
+            # data_dict5 = data_dict2.copy()
+            # posterior_combine
+            # data_dict6 = data_posterior_combine.copy()
 
-        pdf1 = self.posterior1.pdf(data_dict1)
-        pdf2 = self.posterior2.pdf(data_dict2)
-        pdf3 = self.astro_lensed.pdf(data_dict3)
-        pdf4 = self.pe_prior.pdf(data_dict1)
-        pdf5 = self.pe_prior.pdf(data_dict2)
-        pdf6 = self.posterior_combine.pdf(data_posterior_combine)
+            pdf1 = self.posterior1.pdf(data_dict1)
+            pdf2 = self.posterior2.pdf(data_dict2)
+            pdf3 = self.astro_lensed.pdf(data_dict3)
+            pdf4 = self.pe_prior.pdf(data_dict1)
+            pdf5 = self.pe_prior.pdf(data_dict2)
+            pdf6 = self.posterior_combine.pdf(data_posterior_combine)
+            pdf123 = pdf1 * pdf2 * pdf3
+            pdf456 = pdf4 * pdf5 * pdf6
 
-        blu_numerator = pdf1 * pdf2 * pdf3 / pdf4 / pdf5 / pdf6
+            # ignore the zero values
+            # note that buffer_array can have zero values if pdf123<<pdf456
+            idx = pdf456!=0
+            idx &= pdf1!=0
+            idx &= pdf2!=0
+            idx &= pdf3!=0
+            buffer_array = pdf123[idx] / pdf456[idx]
 
-        # check inf
-        idx = blu_numerator!=np.inf
-        idx &= blu_numerator!=-np.inf
-        # check for nan
-        idx &= np.isnan(blu_numerator)==False
-        blu_numerator = blu_numerator[idx]
+            # check inf
+            idx = buffer_array!=np.inf
+            idx &= buffer_array!=-np.inf
+            # check for nan
+            idx &= np.isnan(buffer_array)==False
+            idx &= buffer_array!=0
+            buffer_array = buffer_array[idx]
 
-        return blu_numerator, pdf1, pdf2, pdf3, pdf4, pdf5, pdf6
+            
+            if len(buffer_array) != 0:
+                # append
+                blu_numerator = np.concatenate((blu_numerator, buffer_array))
+                result_size = len(blu_numerator)
+                sample_size = sample_size_original - result_size
+
+        return blu_numerator
 
     def po_hemanta_denominator(self, sample_size=100000):
 
-        data_posterior1 = self.posterior1.resample(sample_size)
-        data_posterior2 = self.posterior2.resample(sample_size)
+        result_size = 0
+        sample_size_original = sample_size
+        denominator_array = np.array([])
+        while result_size < sample_size_original:
+            # resample
+            data_posterior1 = self.posterior1.resample(sample_size)
+            data_posterior2 = self.posterior2.resample(sample_size)
 
-        # astro_unlensed1
-        # data_dict1 = data_posterior1.copy()
-        # astro_unlensed2
-        data_dict2 = data_posterior2.copy()
-        data_dict2['log10_dt_12_days'] = self.log_dt_12_days*np.ones(sample_size)
-        # pe_prior
-        # data_dict3 = data_posterior1.copy()
-        # data_dict4 = data_posterior2.copy()
+            # astro_unlensed1
+            # data_dict1 = data_posterior1.copy()
+            # astro_unlensed2
+            data_dict2 = data_posterior2.copy()
+            data_dict2['log10_dt_12_days'] = self.log_dt_12_days*np.ones(sample_size)
+            # pe_prior
+            # data_dict3 = data_posterior1.copy()
+            # data_dict4 = data_posterior2.copy()
 
-        pdf1 = self.astro_unlensed1.pdf(data_posterior1)
-        pdf2 = self.astro_unlensed2.pdf(data_dict2)
-        pdf3 = self.pe_prior.pdf(data_posterior1)
-        pdf4 = self.pe_prior.pdf(data_posterior2)
+            pdf1 = self.astro_unlensed1.pdf(data_posterior1)
+            pdf2 = self.astro_unlensed2.pdf(data_dict2)
+            pdf3 = self.pe_prior.pdf(data_posterior1)
+            pdf4 = self.pe_prior.pdf(data_posterior2)
+            pdf12 = pdf1 * pdf2
+            pdf34 = pdf3 * pdf4
 
-        blu_denominator = pdf1 * pdf2 / pdf3 / pdf4
+            # ignore the zero values
+            # note that buffer_array can have zero values if pdf12<<pdf34
+            idx = pdf34!=0
+            idx &= pdf1!=0
+            idx &= pdf2!=0
+            buffer_array = pdf12[idx] / pdf34[idx]
 
-        # check inf
-        idx = blu_denominator!=np.inf
-        idx &= blu_denominator!=-np.inf
-        # check for nan
-        idx &= np.isnan(blu_denominator)==False
-        blu_denominator = blu_denominator[idx]
+            # check inf
+            idx = buffer_array!=np.inf
+            idx &= buffer_array!=-np.inf
+            # check for nan
+            idx &= np.isnan(buffer_array)==False
+            buffer_array = buffer_array[idx]
+            
+            if len(buffer_array) != 0:
+                # append
+                denominator_array = np.concatenate((denominator_array, buffer_array))
+                result_size = len(denominator_array)
+                sample_size_original = sample_size_original - result_size
 
-        return blu_denominator, pdf1, pdf2, pdf3, pdf4
+        return denominator_array
 
 
     def bayes_factor(self, sample_size=100000):
@@ -341,11 +389,55 @@ class POBS():
         Calculate the bayes factor
         """
 
-        blu_numerator = self.po_hemanta_numerator(sample_size=sample_size)[0]
-        blu_denominator = self.po_hemanta_denominator(sample_size=sample_size)[0]
+        blu_numerator = self.po_hemanta_numerator(sample_size=sample_size)
+        blu_denominator = self.po_hemanta_denominator(sample_size=sample_size)
 
         avg_numerator = np.average(blu_numerator)
         avg_denominator = np.average(blu_denominator)
+
+        log10_bayes_factor = np.log10(avg_numerator)-np.log10(avg_denominator)
+        bayes_factor = avg_numerator/avg_denominator
+
+        return bayes_factor, log10_bayes_factor
+
+    def bayes_factor_multiprocessing(self, sample_size=10000):
+
+        npool = self.npool
+        # divide the sample_size by npool
+        size_ = int(sample_size/npool)
+        sample_size_list = [size_ for i in range(npool)]
+        # take care of the remainder
+        sample_size_list[-1] += sample_size - size_*npool
+
+        # return input_arguments
+        input_arguments = [
+            [sample_size_list[i], # 0
+            self.log_dt_12_days, # 1
+            self.astro_lensed, # 2
+            self.astro_unlensed1, # 3
+            self.astro_unlensed2, # 4
+            self.pe_prior, # 5
+            self.posterior1, # 6
+            self.posterior2, # 7
+            self.posterior_combine, # 8 
+            ] for i in range(npool)]
+
+        numerator_list = []
+        denominator_list = []
+
+        with Pool(processes=npool) as pool:
+            for numerator_, denominator_ in pool.map(bayes_factor_multiprocessing, input_arguments):
+                numerator_list += numerator_
+                denominator_list += denominator_
+
+        # # with for loop
+        # for input_arguments_ in input_arguments:
+        #     numerator_, denominator_ = bayes_factor_multiprocessing(input_arguments_)
+        #     numerator_list += numerator_
+        #     denominator_list += denominator_
+
+        avg_numerator = np.average(numerator_list)
+        avg_denominator = np.average(denominator_list)
 
         log10_bayes_factor = np.log10(avg_numerator)-np.log10(avg_denominator)
         bayes_factor = avg_numerator/avg_denominator

@@ -17,5 +17,6 @@ from .pobs import *
 from .njit_functions import *
 from .modelgenerator import *
 from .utils import *
+from .mp import *
 # import data directory
 from . import data
