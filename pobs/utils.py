@@ -199,6 +199,68 @@ def append_json(file_name, new_dictionary, old_dictionary=None, replace=False):
 
     return data
 
+def add_dictionaries_together(dictionary1, dictionary2):
+    """
+    Adds two dictionaries with the same keys together.
+    
+    Parameters
+    ----------
+    dictionary1 : `dict`
+        dictionary to be added.
+    dictionary2 : `dict`
+        dictionary to be added.
+
+    Returns
+    ----------
+    dictionary : `dict`
+        dictionary with added values.
+    """
+    dictionary = {}
+    # Check if either dictionary empty, in which case only return the dictionary with values
+    if len(dictionary1) == 0:
+        return dictionary2
+    elif len(dictionary2) == 0:
+        return dictionary1
+    # Check if the keys are the same
+    if dictionary1.keys() != dictionary2.keys():
+        raise ValueError("The dictionaries have different keys.")
+    for key in dictionary1.keys():
+        value1 = dictionary1[key]
+        value2 = dictionary2[key]
+
+        # check if the value is empty
+        bool0 = len(value1) == 0 or len(value2) == 0
+        # check if the value is an ndarray or a list
+        bool1 = isinstance(value1, np.ndarray) and isinstance(value2, np.ndarray)
+        bool2 = isinstance(value1, list) and isinstance(value2, list)
+        bool3 = isinstance(value1, np.ndarray) and isinstance(value2, list)
+        bool4 = isinstance(value1, list) and isinstance(value2, np.ndarray)
+        bool4 = bool4 or bool3
+        bool5 = isinstance(value1, dict) and isinstance(value2, dict)
+
+        if bool0:
+            if len(value1) == 0 and len(value2) == 0:
+                dictionary[key] = np.array([])
+            elif len(value1) != 0 and len(value2) == 0:
+                dictionary[key] = np.array(value1)
+            elif len(value1) == 0 and len(value2) != 0:
+                dictionary[key] = np.array(value2)
+        elif bool1:
+            dictionary[key] = np.concatenate((value1, value2))
+        elif bool2:
+            dictionary[key] = value1 + value2
+        elif bool4:
+            dictionary[key] = np.concatenate((np.array(value1), np.array(value2)))
+        elif bool5:
+            dictionary[key] = add_dictionaries_together(
+                dictionary1[key], dictionary2[key]
+            )
+        else:
+            raise ValueError(
+                "The dictionary contains an item which is neither an ndarray nor a dictionary."
+            )
+    return dictionary
+
 # def add_dict_values(dict1, dict2):
 #     """Adds the values of two dictionaries together.
     
@@ -354,6 +416,8 @@ def data_check_astro_lensed(data_dict):
 
 def data_check_posterior(posterior1, posterior2):
 
+    print(posterior1.keys())
+
     param_1 = {}
     param_2 = {}
 
@@ -362,13 +426,19 @@ def data_check_posterior(posterior1, posterior2):
         try:
             param_1[key] = np.array(posterior1['posterior'][key])
         except:
-            print(f"posterior1 should have the following keys: {param_list}")
-            raise ValueError(f"{key} is not present in the posterior1")
+            try:
+                param_1[key] = np.array(posterior1[key])
+            except:
+                print(f"posterior1 should have the following keys: {param_list}")
+                raise ValueError(f"{key} is not present in the posterior1")
         try:
             param_2[key] = np.array(posterior2['posterior'][key])
         except:
-            print(f"posterior2 should have the following keys: {param_list}")
-            raise ValueError(f"{key} is not present in the posterior2")
+            try:
+                param_2[key] = np.array(posterior2[key])
+            except:
+                print(f"posterior2 should have the following keys: {param_list}")
+                raise ValueError(f"{key} is not present in the posterior2")
 
 
     # log10 for (time/86400) and luminosity distance
