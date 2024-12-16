@@ -384,7 +384,7 @@ I_1 &= \int d\xi P(\xi_1|T_1,d_1) P(\xi_2|T_2,d_2) P_{astro}(\xi,\Delta T|H_L) \
 &= \int dm_{1}\, dm_{2}\, d\iota\, dd_{L,1}\, dd_{L,2} \, d\alpha\, d\delta \times \\ \nonumber
 &\;\;\;\;\;\;\;\; P(m_1, m_2, \iota, d_{L,1}|T_1, d_1) P(\alpha, \delta | T_1, d_1) \times \\ \nonumber
 &\;\;\;\;\;\;\;\; P(m_1, m_2, \iota, d_{L,2}|T_2, d_2) P(\alpha, \delta | T_2, d_2) \times \\ \nonumber
-&\;\;\;\;\;\;\;\; P_{astro}(m_{1}, m_{2}, \iota, d_{L,1}, d_{L,2}, \Delta T|H_L) P_{astro}(\alpha, \delta | H_L) \times \\
+&\;\;\;\;\;\;\;\; P_{astro}(m_{1}, m_{2}, \iota, d_{L,1}, d_{L,2}, \Delta T|H_L) P_{astro}(\alpha, \delta | H_L) \times \\ \nonumber
 &\;\;\;\;\;\;\;\; P_{comb}(m_1, m_2, \alpha, \delta, \iota, d_{L,1}, d_{L,2}|T_1, d_1, T_2, d_2) \div \\ \nonumber
 &\;\;\;\;\;\;\;\; \{P_{comb}(m_1, m_2, \iota, d_{L,1}, d_{L,2}|T_1, d_1, T_2, d_2) P_{comb}(\alpha, \delta | T_1, d_1, T_2, d_2)\} \\
 \end{align}
@@ -419,7 +419,8 @@ $$
 & \bigg<\\ \nonumber
 &\; P_{astro}(m_{1,1}, m_{2,1}, \iota_1, d_{L,1}|H_U) P(\alpha_1, \delta_1 | H_U) \times \\ \nonumber
 &\; P_{astro}(m_{1,2}, m_{2,2}, d_{L,2}, \iota_2, d_{L,2}, \Delta T_2|H_U) P(\alpha_2, \delta_2 | H_U) \div \\ \nonumber
-&\bigg>_{ m_{1,1}, m_{2,1}, \iota_1, d_{L,1}\in P(m_{1,1}, m_{2,1}, \iota_1, d_{L,1}|T_1, d_1),\; \alpha_1, \delta_1 \in P(\alpha_1, \delta_1 | T_1, d_1),}\\&_{\; m_{1,2}, m_{2,2}, \iota_2, d_{L,2}\in P(m_{1,2}, m_{2,2}, \iota_2, d_{L,2}|T_2, d_2),\; \alpha_1, \delta_1 \in P(\alpha_2, \delta_2 | T_2, d_2)} \\ \nonumber
+&\bigg>_{ m_{1,1}, m_{2,1}, \iota_1, d_{L,1}\in P(m_{1,1}, m_{2,1}, \iota_1, d_{L,1}|T_1, d_1),\; \alpha_1, \delta_1 \in P(\alpha_1, \delta_1 | T_1, d_1),}\\ \nonumber
+&_{\; m_{1,2}, m_{2,2}, \iota_2, d_{L,2}\in P(m_{1,2}, m_{2,2}, \iota_2, d_{L,2}|T_2, d_2),\; \alpha_1, \delta_1 \in P(\alpha_2, \delta_2 | T_2, d_2)} \\ \nonumber
 \Bigg]& 
 \end{align}
 $$
