@@ -134,8 +134,16 @@ Since the Jacobian determinant is $1$, the differential element $dt_2$ can be re
 $$
 \begin{align}
 \text{I} &= \int \text{F}(u, u+v, w|d_1,d_2,H) |\text{J}|\, du \, dv \, dw \\
+&= \int P(t_1, \xi_1|d_1) P(t_1+\Delta t, \xi_2|d_2) \\ 
+& \quad\quad  P(t_1, t_1+\Delta t, \xi|H) \, dt_1 \, d\Delta t \, d\xi
+\end{align}
+$$
+
+$$
+\begin{align}
+\text{I} &= \int \text{F}(u, u+v, w|d_1,d_2,H) |\text{J}|\, du \, dv \, dw \\
 &= \int P(t_1, \xi_1|d_1) P(t_1+\Delta t, \xi_2|d_2) \\ \nonumber
-& \quad\quad  P(t_1, t_1+\Delta t, \xi|H) \, dt_1 \, d\Delta t \, d\xi \\
+& \;\;\;\;\;\;\;\;  P(t_1, t_1+\Delta t, \xi|H) \, dt_1 \, d\Delta t \, d\xi \\
 \end{align}
 $$
 
