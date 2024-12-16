@@ -1,1 +1,0 @@
-{"model_path": "./pobs_data/model_path_prior_m1m2chieff.pkl", "scaler_path": "./pobs_data/scaler_path_prior_m1m2chieff.pkl", "min_max_path": "./pobs_data/min_max_path_prior_m1m2chieff.pkl", "label_list": ["mass_1", "mass_2", "chi_eff"], "bandwidth_factor": 0.25}

@@ -115,6 +115,8 @@ class ModelGenerator():
 
         if min_max_path is not None:
             min_max = load_json(min_max_path)
+        else:
+            min_max = None
 
         return model, scaler, min_max
 

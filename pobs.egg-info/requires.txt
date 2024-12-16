@@ -1,0 +1,4 @@
+bilby
+gwpy
+lalsuite
+h5py

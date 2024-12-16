@@ -9,6 +9,9 @@ import pickle
 import json
 import h5py
 import bilby
+import matplotlib.pyplot as plt
+import corner
+import matplotlib.lines as mlines
 
 class NumpyEncoder(json.JSONEncoder):
     """
@@ -199,6 +202,68 @@ def append_json(file_name, new_dictionary, old_dictionary=None, replace=False):
 
     return data
 
+def add_dictionaries_together(dictionary1, dictionary2):
+    """
+    Adds two dictionaries with the same keys together.
+    
+    Parameters
+    ----------
+    dictionary1 : `dict`
+        dictionary to be added.
+    dictionary2 : `dict`
+        dictionary to be added.
+
+    Returns
+    ----------
+    dictionary : `dict`
+        dictionary with added values.
+    """
+    dictionary = {}
+    # Check if either dictionary empty, in which case only return the dictionary with values
+    if len(dictionary1) == 0:
+        return dictionary2
+    elif len(dictionary2) == 0:
+        return dictionary1
+    # Check if the keys are the same
+    if dictionary1.keys() != dictionary2.keys():
+        raise ValueError("The dictionaries have different keys.")
+    for key in dictionary1.keys():
+        value1 = dictionary1[key]
+        value2 = dictionary2[key]
+
+        # check if the value is empty
+        bool0 = len(value1) == 0 or len(value2) == 0
+        # check if the value is an ndarray or a list
+        bool1 = isinstance(value1, np.ndarray) and isinstance(value2, np.ndarray)
+        bool2 = isinstance(value1, list) and isinstance(value2, list)
+        bool3 = isinstance(value1, np.ndarray) and isinstance(value2, list)
+        bool4 = isinstance(value1, list) and isinstance(value2, np.ndarray)
+        bool4 = bool4 or bool3
+        bool5 = isinstance(value1, dict) and isinstance(value2, dict)
+
+        if bool0:
+            if len(value1) == 0 and len(value2) == 0:
+                dictionary[key] = np.array([])
+            elif len(value1) != 0 and len(value2) == 0:
+                dictionary[key] = np.array(value1)
+            elif len(value1) == 0 and len(value2) != 0:
+                dictionary[key] = np.array(value2)
+        elif bool1:
+            dictionary[key] = np.concatenate((value1, value2))
+        elif bool2:
+            dictionary[key] = value1 + value2
+        elif bool4:
+            dictionary[key] = np.concatenate((np.array(value1), np.array(value2)))
+        elif bool5:
+            dictionary[key] = add_dictionaries_together(
+                dictionary1[key], dictionary2[key]
+            )
+        else:
+            raise ValueError(
+                "The dictionary contains an item which is neither an ndarray nor a dictionary."
+            )
+    return dictionary
+
 # def add_dict_values(dict1, dict2):
 #     """Adds the values of two dictionaries together.
     
@@ -219,7 +284,7 @@ def append_json(file_name, new_dictionary, old_dictionary=None, replace=False):
 #         if key in data_key:
 #             dict1[key] = np.concatenate((dict1[key], value))
 
-    return dict1
+#     return dict1
 
 def get_param_from_json(json_file):
     """
@@ -354,6 +419,8 @@ def data_check_astro_lensed(data_dict):
 
 def data_check_posterior(posterior1, posterior2):
 
+    print(posterior1.keys())
+
     param_1 = {}
     param_2 = {}
 
@@ -362,13 +429,19 @@ def data_check_posterior(posterior1, posterior2):
         try:
             param_1[key] = np.array(posterior1['posterior'][key])
         except:
-            print(f"posterior1 should have the following keys: {param_list}")
-            raise ValueError(f"{key} is not present in the posterior1")
+            try:
+                param_1[key] = np.array(posterior1[key])
+            except:
+                print(f"posterior1 should have the following keys: {param_list}")
+                raise ValueError(f"{key} is not present in the posterior1")
         try:
             param_2[key] = np.array(posterior2['posterior'][key])
         except:
-            print(f"posterior2 should have the following keys: {param_list}")
-            raise ValueError(f"{key} is not present in the posterior2")
+            try:
+                param_2[key] = np.array(posterior2[key])
+            except:
+                print(f"posterior2 should have the following keys: {param_list}")
+                raise ValueError(f"{key} is not present in the posterior2")
 
 
     # log10 for (time/86400) and luminosity distance
@@ -555,6 +628,253 @@ def data_check_pe_prior(data_dict):
 
     return data_dict
 
+def save_min_max(filename, data_dict):
+    min_max = {}
+    for key, value in data_dict.items():
+        min_max[key] = dict(
+            min_data = np.min(value), 
+            max_data = np.max(value),
+        )
+    save_json(filename, min_max)
+
+    return min_max
+
 # prior-dict={{mass_1 = Constraint(name='mass_1', minimum=5, maximum=140), mass_2 = Constraint(name='mass_2', minimum=5, maximum=140), chirp_mass =  Uniform(name='chirp_mass', minimum={mc_min}, maximum={mc_max}, latex_label='$M_{{c}}$'), mass_ratio =  Uniform(name='mass_ratio', minimum=0.125, maximum=1, latex_label='$q$'), a_1 = Uniform(name='a_1', minimum=0, maximum=0.99), a_2 = Uniform(name='a_2', minimum=0, maximum=0.99), tilt_1 = Sine(name='tilt_1'), tilt_2 = Sine(name='tilt_2'), phi_12 = Uniform(name='phi_12', minimum=0, maximum=2 * np.pi, boundary='periodic'), phi_jl = Uniform(name='phi_jl', minimum=0, maximum=2 * np.pi, boundary='periodic'), luminosity_distance = PowerLaw(alpha=2, name='luminosity_distance', minimum=50, maximum=15000, unit='Mpc', latex_label='$d_L$'),  dec = Cosine(name='dec'), ra = Uniform(name='ra', minimum=0, maximum=2 * np.pi, boundary='periodic'), theta_jn = Sine(name='theta_jn'), psi =  Uniform(name='psi', minimum=0, maximum=np.pi, boundary='periodic'), phase =  Uniform(name='phase', minimum=0, maximum=2 * np.pi, boundary='periodic'),}}
 
+def data_check_astro_lensed_dpgmm(data_dict):
 
+    lensed_param = {}
+
+    param_list = ['theta_jn', 'mass_1', 'mass_2', 'effective_luminosity_distance', 'effective_geocent_time', 'optimal_snr_net']
+    for key in param_list:
+        try:
+            lensed_param[key] = np.array(data_dict[key])
+        except:
+            print(f"data_dict should have the following keys: {param_list}")
+            raise ValueError(f"{key} is not present in the data_dict")
+
+    # seperate out image 1, 2
+    # this is wrt to time of arrival
+    lensed_param_1 = {}
+    lensed_param_2 = {}
+
+    for key, value in lensed_param.items():
+        if np.shape(np.shape(value))[0]==2:
+            lensed_param_1[key] = np.array(value)[:,0]
+            lensed_param_2[key] = np.array(value)[:,1]
+        else:
+            lensed_param_1[key] = np.array(value)
+            lensed_param_2[key] = np.array(value)
+
+    # For image 1 and 2 only
+    # only keep snr > 8
+    idx_snr1 = lensed_param_1['optimal_snr_net'] > 8
+    idx_snr2 = lensed_param_2['optimal_snr_net'] > 8
+    idx_snr = idx_snr1 & idx_snr2
+
+    # log10 for (time/86400) and luminosity distance
+    data_dict = dict(
+        mass_1 = lensed_param_1['mass_1'][idx_snr],
+        mass_2 = lensed_param_1['mass_2'][idx_snr],
+        theta_jn = lensed_param_1['theta_jn'][idx_snr],
+        log10_dl_1 = np.log10(lensed_param_1['effective_luminosity_distance'][idx_snr]),
+        log10_dl_2 = np.log10(lensed_param_2['effective_luminosity_distance'][idx_snr]),
+        log10_dt_12_days = np.log10(((lensed_param_2['effective_geocent_time'][idx_snr] - lensed_param_1['effective_geocent_time'][idx_snr])/86400.)),
+    )
+
+    return data_dict
+
+def data_check_astro_lensed_sky_dpgmm(data_dict):
+
+    lensed_param = {}
+
+    param_list = ['ra', 'dec', 'optimal_snr_net']
+    for key in param_list:
+        try:
+            lensed_param[key] = np.array(data_dict[key])
+        except:
+            print(f"data_dict should have the following keys: {param_list}")
+            raise ValueError(f"{key} is not present in the data_dict")
+
+    # seperate out image 1, 2
+    # this is wrt to time of arrival
+    lensed_param_1 = {}
+    lensed_param_2 = {}
+
+    for key, value in lensed_param.items():
+        if np.shape(np.shape(value))[0]==2:
+            lensed_param_1[key] = np.array(value)[:,0]
+            lensed_param_2[key] = np.array(value)[:,1]
+        else:
+            lensed_param_1[key] = np.array(value)
+            lensed_param_2[key] = np.array(value)
+
+    # For image 1 and 2 only
+    # only keep snr > 8
+    idx_snr1 = lensed_param_1['optimal_snr_net'] > 8
+    idx_snr2 = lensed_param_2['optimal_snr_net'] > 8
+    idx_snr = idx_snr1 & idx_snr2
+
+    # log10 for (time/86400) and luminosity distance
+    data_dict = dict(
+        ra = lensed_param_1['ra'][idx_snr],
+        dec = lensed_param_1['dec'][idx_snr],
+    )
+
+    return data_dict
+
+def data_check_astro_unlensed_dpgmm(data_dict, size=100000):
+
+    unlensed_param = {}
+
+    param_list = ['theta_jn', 'mass_1', 'mass_2', 'luminosity_distance', 'geocent_time']
+
+    len_ = len(data_dict['geocent_time'])
+    idx_all = np.arange(0, len_)
+    # randomize idx_all
+    np.random.shuffle(idx_all)
+
+    for key in param_list:
+        try:
+            # randomize the data data_dict[key]
+            unlensed_param[key] = np.array(data_dict[key])[idx_all]
+        except:
+            print(f"data_dict should have the following keys: {param_list}")
+            raise ValueError(f"{key} is not present in the data_dict")
+
+    #########################################
+    # pairing indices for the unlensed data #
+    #########################################
+    # how many possible combination all
+    num_combinations = comb(len_, 2, exact=True)
+    # Known number of combinations
+    C = size if size < num_combinations else num_combinations
+    len_ = (1 + np.sqrt(1 + 8 * C)) / 2
+    # Define the index array
+    idx_all = np.arange(0, int(len_))
+    # # randomize idx_all
+    # np.random.shuffle(idx_all)
+
+    # Generate all possible two-element combinations
+    combination_array = np.array(list(itertools.combinations(idx_all, 2)))
+    idx1 = combination_array[:,0]
+    idx2 = combination_array[:,1]
+
+    geocent_time1 = unlensed_param['geocent_time'][idx1]
+    geocent_time2 = unlensed_param['geocent_time'][idx2]
+    # (geocent_time2 - geocent_time1) > 0, otherwise swap. 1 is earlier than 2
+    mask = geocent_time2 <= geocent_time1  
+    idx1[mask], idx2[mask] = idx2[mask], idx1[mask]
+
+    unlensed_param['log10_dl'] = np.log10(unlensed_param['luminosity_distance'])
+    param_list = ['mass_1','mass_2', 'theta_jn','log10_dl']
+
+    data_dict1 = {}
+    data_dict2 = {}
+    for key in param_list:
+        # data_dict1[key] = unlensed_param[key][idx1]
+        # data_dict2[key] = unlensed_param[key][idx2]
+        # choose only unique values
+        data_dict1[key] = np.unique(unlensed_param[key][idx1])
+        data_dict2[key] = np.unique(unlensed_param[key][idx2])
+
+    data_dict2['log10_dt_12_days'] = np.log10((unlensed_param['geocent_time'][idx2]-unlensed_param['geocent_time'][idx1])/86400.)
+    data_dict2['log10_dt_12_days'] = np.unique(data_dict2['log10_dt_12_days'])
+
+
+    return data_dict1, data_dict2
+
+def data_check_astro_unlensed_time_dpgmm(data_dict, size=100000):
+
+    unlensed_param = {}
+
+    param_list = ['geocent_time']
+
+    len_ = len(data_dict['geocent_time'])
+    idx_all = np.arange(0, len_)
+    # randomize idx_all
+    np.random.shuffle(idx_all)
+
+    for key in param_list:
+        try:
+            # randomize the data data_dict[key]
+            unlensed_param[key] = np.array(data_dict[key])[idx_all]
+        except:
+            print(f"data_dict should have the following keys: {param_list}")
+            raise ValueError(f"{key} is not present in the data_dict")
+
+    #########################################
+    # pairing indices for the unlensed data #
+    #########################################
+    # how many possible combination all
+    num_combinations = comb(len_, 2, exact=True)
+    # Known number of combinations
+    # print(f'num_combinations: {num_combinations}')
+    C = size if size < num_combinations else num_combinations
+    # print(f'C: {C}')
+    len_ = (1 + np.sqrt(1 + 8 * C)) / 2
+    # Define the index array
+    idx_all = np.arange(0, int(len_))
+    # # randomize idx_all
+    # np.random.shuffle(idx_all)
+
+    # Generate all possible two-element combinations
+    combination_array = np.array(list(itertools.combinations(idx_all, 2)))
+    idx1 = combination_array[:,0]
+    idx2 = combination_array[:,1]
+
+    geocent_time1 = unlensed_param['geocent_time'][idx1]
+    geocent_time2 = unlensed_param['geocent_time'][idx2]
+    # (geocent_time2 - geocent_time1) > 0, otherwise swap. 1 is earlier than 2
+    mask = geocent_time2 <= geocent_time1  
+    idx1[mask], idx2[mask] = idx2[mask], idx1[mask]
+    # print(f'idx1: {len(idx1)}')
+
+    result_dict = {'log10_dt_12_days': np.log10((unlensed_param['geocent_time'][idx2]-unlensed_param['geocent_time'][idx1])/86400.)}
+
+    return result_dict
+
+def plot(data_dict1, data_dict2=None, labels=None):
+
+    if labels is None:
+        labels = list(data_dict1.keys())
+
+    data_1 = []
+    for key, value in data_dict1.items():
+        data_1.append(value)
+    data_1 = np.array(data_1).T
+
+    if data_dict2 is not None:
+
+        data_2 = []
+        for key, value in data_dict2.items():
+            data_2.append(value)
+        data_2 = np.array(data_2).T
+
+        # plot the corner plot
+        fig = corner.corner(data_2 ,color = 'C0', density = True, plot_datapoints=False, label='train', hist_kwargs={'density':True})
+
+        corner.corner(data_1, fig=fig,color='C1',density=True, labels=labels, show_titles=True, plot_datapoints=False, quantiles=[0.05, 0.5, 0.95], hist_kwargs={'density':True})
+
+        colors = ['C0', 'C1']
+        sample_labels = ['data_2', 'data_1']
+        plt.legend(
+            handles=[
+                mlines.Line2D([], [], color=colors[i], label=sample_labels[i])
+                for i in range(2)
+            ],
+            fontsize=20, frameon=False,
+            bbox_to_anchor=(1, data_1.shape[1]), loc="upper right"
+        )
+        plt.gcf().set_size_inches(20, 20)           
+    else:
+        corner.corner(
+            data_1, 
+            color='C1',
+            density=True, 
+            labels=labels, 
+            show_titles=True, 
+            plot_datapoints=False, 
+            quantiles=[0.05, 0.5, 0.95], 
+            hist_kwargs={'density':True},
+            )

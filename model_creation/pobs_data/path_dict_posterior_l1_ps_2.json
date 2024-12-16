@@ -1,1 +1,0 @@
-{"model_path": "./pobs_data/model_path_posterior_l1_ps_2.pkl", "scaler_path": "./pobs_data/scaler_path_posterior_l1_ps_2.pkl", "min_max_path": "./pobs_data/min_max_path_posterior_l1_ps_2.pkl", "label_list": ["mass_1", "mass_2", "ra", "sindec", "costheta_jn", "chi_eff", "log10_dl"], "bandwidth_factor": 0.25}
