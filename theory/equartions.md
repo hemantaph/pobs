@@ -1,6 +1,6 @@
 # Posterior overlap
 
-## Introduction to Posterior Overlap and Hypothesis Testing in Gravitational Wave Astronomy
+## Introduction to Posterior Overlap and Hypothesis Testing in Lensed Gravitational Wave Astronomy
 
 Gravitational wave (GW) astronomy has emerged as a pivotal field in understanding the cosmos, particularly through the observation of events such as compact binary mergers. A major scientific challenge within this domain is distinguishing between lensed and unlensed gravitational wave events. Lensed events occur when a massive body, like a galaxy or a cluster of galaxies, bends the path of the gravitational waves emanating from a distant astronomical event, such as a binary merger, causing multiple detectable signals from what is essentially a single event. Conversely, unlensed events involve signals that reach observers without such interference. This distinction is crucial for accurate cosmological measurements and understanding the distribution of matter in the universe.
 
