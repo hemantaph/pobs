@@ -135,7 +135,7 @@ $$
 \begin{align}
 \text{I} &= \int \text{F}(u, u+v, w|d_1,d_2,H) |\text{J}|\, du \, dv \, dw \\
 &= \int P(t_1, \xi_1|d_1) P(t_1+\Delta t, \xi_2|d_2) \\ \nonumber
-& \; \; \; \; \; \; \; \;  P(t_1, t_1+\Delta t, \xi|H) \, dt_1 \, d\Delta t \, d\xi \\
+& \quad\quad  P(t_1, t_1+\Delta t, \xi|H) \, dt_1 \, d\Delta t \, d\xi \\
 \end{align}
 $$
 
@@ -144,8 +144,8 @@ I will factor out $t_1$ as it is independent.
 $$
 \begin{align}
 \text{I} &= \int P(\xi_1|t_1, d_1) P(t_1|d_1) \\ \nonumber
-& \; \; \; \; \; \; \; \; P(\xi_2|t_1+\Delta t, d_2) P(t_1+\Delta t| d_2) \\ \nonumber
-& \; \; \; \; \; \; \; \; P(\Delta t, \xi| H) P(t_1|H)\, dt_1 \, d\Delta t \, d\xi \\
+& \;\;\;\;\;\;\;\; P(\xi_2|t_1+\Delta t, d_2) P(t_1+\Delta t| d_2) \\ \nonumber
+& \;\;\;\;\;\;\;\; P(\Delta t, \xi| H) P(t_1|H)\, dt_1 \, d\Delta t \, d\xi \\
 \end{align}
 $$
 
@@ -157,12 +157,12 @@ $P(t_1, t_1+\Delta t, \xi|H) = P(t_1|H) P(\Delta t, \xi| H)$ as $t_1$ is indepen
 $$
 \begin{align}
 \text{I} &= \int P(\xi_1|T_1, d_1) P(T_1|d_1) \\ \nonumber
-& \; \; \; \; \; \; \; \; P(\xi_2|T_2, d_2) P(T_2| d_2) \\ \nonumber
-& \; \; \; \; \; \; \; \; P(\Delta T, \xi|T_1, H) P(T_1|H) \, d\xi \\
+& \;\;\;\;\;\;\;\; P(\xi_2|T_2, d_2) P(T_2| d_2) \\ \nonumber
+& \;\;\;\;\;\;\;\; P(\Delta T, \xi|T_1, H) P(T_1|H) \, d\xi \\
 &= P(T_1|H) \int P(\xi_1|T_1, d_1)\; P(\xi_2|T_2, d_2)  \\ \nonumber
-& \; \; \; \; \; \; \; \; P(\Delta T, \xi| H) \, d\xi \\
+& \;\;\;\;\;\;\;\; P(\Delta T, \xi| H) \, d\xi \\
 &= P(T_1|H) \int \text{KDE}(\xi_1|T_1, d_1)\; \text{KDE}(\xi_2|T_2, d_2)  \\ \nonumber
-& \; \; \; \; \; \; \; \; \text{KDE}(\Delta T, \xi| H) \, d\xi \\
+& \;\;\;\;\;\;\;\; \text{KDE}(\Delta T, \xi| H) \, d\xi \\
 \end{align}
 $$
 
@@ -176,7 +176,7 @@ What if the transformation is not just a shift in the variable but a scaling? Fo
 $$
 \begin{align}
 \text{I} &= \int P(d_{L,1},\rho_1|T_1, d_1)\; P(d_{L,2},\rho_2|T_2, d_2)  \\ \nonumber
-& \; \; \; \; \; \; \; \; P(\Delta T, d_{L,1}, d_{L,2},\rho| H) \, d\rho \,dd_{L,1}\, dd_{L,2} 
+& \;\;\;\;\;\;\;\; P(\Delta T, d_{L,1}, d_{L,2},\rho| H) \, d\rho \,dd_{L,1}\, dd_{L,2} 
 \end{align}
 $$
 
@@ -187,9 +187,9 @@ Following similar steps as in the time transformation, we calculated the Jacobia
 $$
 \begin{align}
 \text{I} &= \int P(d_{L,1},\rho_1|T_1, d_1)\; P(\Delta \mu .d_{L,1},\rho_2|T_2, d_2)  \\ \nonumber
-& \; \; \; \; \; \; \; \; P(\Delta T, d_{L,1}, \Delta \mu .d_{L,1},\rho| H) d_{L,1}\, d\rho \,dd_{L,1}\, d\Delta \mu \\
+& \;\;\;\;\;\;\;\; P(\Delta T, d_{L,1}, \Delta \mu .d_{L,1},\rho| H) d_{L,1}\, d\rho \,dd_{L,1}\, d\Delta \mu \\
 &= \int \text{KDE}(d_{L,1},\rho_1|T_1, d_1)\; \text{KDE}(\Delta \mu .d_{L,1},\rho_2|T_2, d_2)  \\ \nonumber
-& \; \; \; \; \; \; \; \; \text{KDE}(\Delta T, d_{L,1}, \Delta \mu .d_{L,1},\rho| H) \, d_{L,1}\, d\rho \,dd_{L,1}\, d\Delta \mu \\
+& \;\;\;\;\;\;\;\; \text{KDE}(\Delta T, d_{L,1}, \Delta \mu .d_{L,1},\rho| H) \, d_{L,1}\, d\rho \,dd_{L,1}\, d\Delta \mu \\
 \end{align}
 $$
 
@@ -203,7 +203,7 @@ $$
 \begin{align}
 \text{KDE}&(d_{L,1},\rho_1|T_1, d_1) \times \text{KDE}(\Delta \mu,\rho_2|T_2, d_2) \times \\ \nonumber 
 & \text{KDE}(\Delta T, d_{L,1}, \Delta \mu,\rho| H) = \text{KDE}(d_{L,1},\rho_1|T_1, d_1) \times\\ \nonumber 
-& \; \; \; \; \; \; \; \;  \text{KDE}(\Delta \mu,\rho_2|T_2, d_2) \times \text{KDE}(\Delta T, d_{L,1}, \Delta \mu,\rho| H) \times d_{L,1}
+& \;\;\;\;\;\;\;\;  \text{KDE}(\Delta \mu,\rho_2|T_2, d_2) \times \text{KDE}(\Delta T, d_{L,1}, \Delta \mu,\rho| H) \times d_{L,1}
 \end{align}
 $$
 
@@ -212,7 +212,7 @@ Thus, Eqn(23) becomes,
 $$
 \begin{align}
 \text{I} &= \int \text{KDE}(d_{L,1},\rho_1|T_1, d_1)\; \text{KDE}(\Delta \mu,\rho_2|T_2, d_2)  \\ \nonumber
-& \; \; \; \; \; \; \; \; \text{KDE}(\Delta T, d_{L,1}, \Delta \mu,\rho| H) \, d_{L,1}\, d\rho \,dd_{L,1}\, d\Delta \mu \\
+& \;\;\;\;\;\;\;\; \text{KDE}(\Delta T, d_{L,1}, \Delta \mu,\rho| H) \, d_{L,1}\, d\rho \,dd_{L,1}\, d\Delta \mu \\
 \end{align}
 $$
 
@@ -227,7 +227,7 @@ Can we rescale the parameters in the probability distribution with certain funct
 $$
 \begin{align}
 \text{I} &= \int P( d_{L,1}, \rho_1|T_1, d_1)\; P( d_{L,2}, \rho_2|T_2, d_2)  \\ \nonumber
-& \; \; \; \; \; \; \; \; P(\Delta T,  d_{L,1},  d_{L,2}, \rho| H) \, d\rho \,d d_{L,1}\, d d_{L,2}
+& \;\;\;\;\;\;\;\; P(\Delta T,  d_{L,1},  d_{L,2}, \rho| H) \, d\rho \,d d_{L,1}\, d d_{L,2}
 \end{align}
 $$
 
@@ -235,11 +235,11 @@ $$
 $$
 \begin{align}
 \text{I} &= \int P(d_{L,1},\rho_1|T_1, d_1)\; P(d_{L,2},\rho_2|T_2, d_2)  \\ \nonumber
-& \; \; \; \; \; \; \; \; P(\Delta T, d_{L,1}, d_{L,2},\rho| H) \, d\rho \,dd_{L,1}\, dd_{L,2} \\
+& \;\;\;\;\;\;\;\; P(\Delta T, d_{L,1}, d_{L,2},\rho| H) \, d\rho \,dd_{L,1}\, dd_{L,2} \\
 &= \int P(10^{\text{log}_{10}  d_{L,1}}, \rho_1|T_1, d_1)\; P(d_{L,2},\rho_2|T_2, d_2)  \\ \nonumber
-& \; \; \; \; \; \; \; \; P(\Delta T, 10^{\text{log}_{10}  d_{L,1}}, d_{L,2},\rho| H) 10^{\text{log}_{10}  d_{L,1}} \text{ln}(10) \, d\rho \,d\text{log}_{10}  d_{L,1}\, dd_{L,2} \\
+& \;\;\;\;\;\;\;\; P(\Delta T, 10^{\text{log}_{10}  d_{L,1}}, d_{L,2},\rho| H) 10^{\text{log}_{10}  d_{L,1}} \text{ln}(10) \, d\rho \,d\text{log}_{10}  d_{L,1}\, dd_{L,2} \\
 &= \int \text{KDE}(\text{log}_{10}   d_{L,1},\rho_1|T_1, d_1)\; \text{KDE}(d_{L,2},\rho_2|T_2, d_2)  \\ \nonumber
-& \; \; \; \; \; \; \; \; \text{KDE}(\Delta T, \text{log}_{10}  d_{L,1}, d_{L,2},\rho| H) 10^{\text{log}_{10}  d_{L,1}} \text{ln}(10) \, d\rho \,d\text{log}_{10}  d_{L,1}\, dd_{L,2}
+& \;\;\;\;\;\;\;\; \text{KDE}(\Delta T, \text{log}_{10}  d_{L,1}, d_{L,2},\rho| H) 10^{\text{log}_{10}  d_{L,1}} \text{ln}(10) \, d\rho \,d\text{log}_{10}  d_{L,1}\, dd_{L,2}
 \end{align}
 $$
 
@@ -286,10 +286,10 @@ $P_{astro}(\xi,\Delta T|H_L)$: astrophysical prior on the parameters with lensed
 $$
 \begin{align}
 P_{astro}(\theta|H_L) &= P_{astro}(m_{1,1}, m_{2,1}, d_{L,1}, \iota_1, \alpha_1, \delta_1, \\ \nonumber
-& \; \; \; \; \; \; \; \; m_{1,2}, m_{2,2}, d_{L,2}, \iota_2, \alpha_2, \delta_2, \Delta T |H_L) \\
+& \;\;\;\;\;\;\;\; m_{1,2}, m_{2,2}, d_{L,2}, \iota_2, \alpha_2, \delta_2, \Delta T |H_L) \\
 &= P_{astro}(m_{1,2}, m_{2,2}, \iota_2, \alpha_2, \delta_2| \\ \nonumber
-& \; \; \; \; \; \; \; \; m_{1,1}, m_{2,1}, \iota_1, \alpha_1, \delta_1, d_{L,1}, d_{L,2}, \Delta T, H_L) \times \\ \nonumber
-& \; \; \; \; \; \; \; \; P_{astro}(m_{1,1}, m_{2,1}, \iota_1, \alpha_1, \delta_1, d_{L,1}, d_{L,2}, \Delta T | H_L) \\
+& \;\;\;\;\;\;\;\; m_{1,1}, m_{2,1}, \iota_1, \alpha_1, \delta_1, d_{L,1}, d_{L,2}, \Delta T, H_L) \times \\ \nonumber
+& \;\;\;\;\;\;\;\; P_{astro}(m_{1,1}, m_{2,1}, \iota_1, \alpha_1, \delta_1, d_{L,1}, d_{L,2}, \Delta T | H_L) \\
 &= 1 \times P_{astro}(m_{1,1}, m_{2,1}, \iota_1, \alpha_1, \delta_1, d_{L,1}, d_{L,2}, \Delta T | H_L)
 \end{align}
 $$
@@ -334,7 +334,7 @@ $$
 \begin{align}
 P_{astro}(\theta|H_U) &= P_{astro}(m_{1,1}, m_{2,1}, d_{L,1}, \iota_1, \alpha_1, \delta_1, m_{1,2}, m_{2,2}, d_{L,2}, \iota_2, \alpha_2, \delta_2, \Delta T |H_U) \\
 &= P_{astro}(m_{1,1}, m_{2,1}, d_{L,1}, \iota_1|H_U) \times  P_{astro}(m_{1,2}, m_{2,2}, d_{L,2}, \iota_2, \Delta T |H_U) \times \\
-&\; \; \; \; \; \; \; \; P_{astro}(\alpha_1, \delta_1 |H_U) \times P_{astro}(\alpha_2, \delta_2 |H_U) \\
+&\;\;\;\;\;\;\;\; P_{astro}(\alpha_1, \delta_1 |H_U) \times P_{astro}(\alpha_2, \delta_2 |H_U) \\
 \end{align}
 $$
 
@@ -382,11 +382,11 @@ $$
 \begin{align}
 I_1 &= \int d\xi P(\xi_1|T_1,d_1) P(\xi_2|T_2,d_2) P_{astro}(\xi,\Delta T|H_L) \\
 &= \int dm_{1}\, dm_{2}\, d\iota\, dd_{L,1}\, dd_{L,2} \, d\alpha\, d\delta \times \\ \nonumber
-&\; \; \; \; \; \; \; \; P(m_1, m_2, \iota, d_{L,1}|T_1, d_1) P(\alpha, \delta | T_1, d_1) \times \\ \nonumber
-&\; \; \; \; \; \; \; \; P(m_1, m_2, \iota, d_{L,2}|T_2, d_2) P(\alpha, \delta | T_2, d_2) \times \\ \nonumber
-&\; \; \; \; \; \; \; \; P_{astro}(m_{1}, m_{2}, \iota, d_{L,1}, d_{L,2}, \Delta T|H_L) P_{astro}(\alpha, \delta | H_L) \times \\
-&\; \; \; \; \; \; \; \; P_{comb}(m_1, m_2, \alpha, \delta, \iota, d_{L,1}, d_{L,2}|T_1, d_1, T_2, d_2) \div \\ \nonumber
-&\; \; \; \; \; \; \; \; \{P_{comb}(m_1, m_2, \iota, d_{L,1}, d_{L,2}|T_1, d_1, T_2, d_2) P_{comb}(\alpha, \delta | T_1, d_1, T_2, d_2)\} \\
+&\;\;\;\;\;\;\;\; P(m_1, m_2, \iota, d_{L,1}|T_1, d_1) P(\alpha, \delta | T_1, d_1) \times \\ \nonumber
+&\;\;\;\;\;\;\;\; P(m_1, m_2, \iota, d_{L,2}|T_2, d_2) P(\alpha, \delta | T_2, d_2) \times \\ \nonumber
+&\;\;\;\;\;\;\;\; P_{astro}(m_{1}, m_{2}, \iota, d_{L,1}, d_{L,2}, \Delta T|H_L) P_{astro}(\alpha, \delta | H_L) \times \\
+&\;\;\;\;\;\;\;\; P_{comb}(m_1, m_2, \alpha, \delta, \iota, d_{L,1}, d_{L,2}|T_1, d_1, T_2, d_2) \div \\ \nonumber
+&\;\;\;\;\;\;\;\; \{P_{comb}(m_1, m_2, \iota, d_{L,1}, d_{L,2}|T_1, d_1, T_2, d_2) P_{comb}(\alpha, \delta | T_1, d_1, T_2, d_2)\} \\
 \end{align}
 $$
 
@@ -396,11 +396,11 @@ $$
 \begin{align}
 I_2 &= \int d\xi P(\xi_1|T_1,d_1) P(\xi_2|T_2,d_2) P_{astro}(\xi,\Delta T|H_U) \\
 &= \int dm_{1,1}\, dm_{2,1}\, d\iota_1\, dd_{L,1}\, d\alpha_1\, d\delta_1 \times \\ \nonumber
-&\; \; \; \; \; \; \; \; dm_{1,2}\, dm_{2,2}\, d\iota_2\, dd_{L,2}\, d\alpha_2\, d\delta_2 \times \\ \nonumber
-&\; \; \; \; \; \; \; \;P(m_{1,1}, m_{2,1}, \iota_1, d_{L,1}|T_1, d_1) P(\alpha_1, \delta_1 | T_1, d_1) \times \\ \nonumber
-&\; \; \; \; \; \; \; \; P(m_{1,2}, m_{2,2}, \iota_2, d_{L,2}|T_2, d_2) P(\alpha_2, \delta_2 | T_2, d_2) \times \\ \nonumber
-&\; \; \; \; \; \; \; \; P_{astro}(m_{1,1}, m_{2,1}, \iota_1, d_{L,1}|H_U) P(\alpha_1, \delta_1 | H_U) \times \\ \nonumber
-&\; \; \; \; \; \; \; \; P_{astro}(m_{1,2}, m_{2,2}, d_{L,2}, \iota_2, d_{L,2}, \Delta T_2|H_U) P(\alpha_2, \delta_2 | H_U)
+&\;\;\;\;\;\;\;\; dm_{1,2}\, dm_{2,2}\, d\iota_2\, dd_{L,2}\, d\alpha_2\, d\delta_2 \times \\ \nonumber
+&\;\;\;\;\;\;\;\;P(m_{1,1}, m_{2,1}, \iota_1, d_{L,1}|T_1, d_1) P(\alpha_1, \delta_1 | T_1, d_1) \times \\ \nonumber
+&\;\;\;\;\;\;\;\; P(m_{1,2}, m_{2,2}, \iota_2, d_{L,2}|T_2, d_2) P(\alpha_2, \delta_2 | T_2, d_2) \times \\ \nonumber
+&\;\;\;\;\;\;\;\; P_{astro}(m_{1,1}, m_{2,1}, \iota_1, d_{L,1}|H_U) P(\alpha_1, \delta_1 | H_U) \times \\ \nonumber
+&\;\;\;\;\;\;\;\; P_{astro}(m_{1,2}, m_{2,2}, d_{L,2}, \iota_2, d_{L,2}, \Delta T_2|H_U) P(\alpha_2, \delta_2 | H_U)
 \end{align}
 $$
 
