@@ -1,6 +1,39 @@
 # Posterior overlap
 
-## Introduction to Posterior Overlap and Hypothesis Testing in Lensed Gravitational Wave Astronomy
+## Contents
+
+- [Posterior overlap](#posterior-overlap)
+  - [Contents](#contents)
+  - [Introduction](#introduction)
+    - [Posterior Overlap and Hypothesis Testing in Lensed Gravitational Wave Astronomy ](#posterior-overlap-and-hypothesis-testing-in-lensed-gravitational-wave-astronomy-)
+  - [Initial setup ](#initial-setup-)
+    - [Odds ratio calculation](#odds-ratio-calculation)
+    - [Bayes factor calculation](#bayes-factor-calculation)
+    - [Parameter space](#parameter-space)
+    - [Factoring out the PE Prior](#factoring-out-the-pe-prior)
+  - [Re-parameterization](#re-parameterization)
+    - [Concept of re-parameterization](#concept-of-re-parameterization)
+    - [Part 1: Time](#part-1-time)
+    - [Part 2: Distance](#part-2-distance)
+    - [Part 3: KDE scaling](#part-3-kde-scaling)
+  - [Renormalization](#renormalization)
+  - [Marginal likelihood for Lensed hypothesis](#marginal-likelihood-for-lensed-hypothesis)
+    - [Astrophysical prior of lensed events](#astrophysical-prior-of-lensed-events)
+    - [Posterior distributions](#posterior-distributions)
+      - [First event](#first-event)
+      - [Second event](#second-event)
+    - [Astrophysical prior of unlensed events](#astrophysical-prior-of-unlensed-events)
+  - [Numerical method](#numerical-method)
+    - [Introduction Monte-Carlo Integration](#introduction-monte-carlo-integration)
+    - [Sampling in the parameter space](#sampling-in-the-parameter-space)
+    - [Bayes factor, analytical form](#bayes-factor-analytical-form)
+      - [Numerator](#numerator)
+      - [Denominator](#denominator)
+    - [Bayes factor, numerical integration](#bayes-factor-numerical-integration)
+
+## Introduction
+
+### Posterior Overlap and Hypothesis Testing in Lensed Gravitational Wave Astronomy <a name="Introduction"></a>
 
 Gravitational wave (GW) astronomy has emerged as a pivotal field in understanding the cosmos, particularly through the observation of events such as compact binary mergers. A major scientific challenge within this domain is distinguishing between lensed and unlensed gravitational wave events. Lensed events occur when a massive body, like a galaxy or a cluster of galaxies, bends the path of the gravitational waves emanating from a distant astronomical event, such as a binary merger, causing multiple detectable signals from what is essentially a single event. Conversely, unlensed events involve signals that reach observers without such interference. This distinction is crucial for accurate cosmological measurements and understanding the distribution of matter in the universe.
 
@@ -10,7 +43,9 @@ Our study addresses these deficiencies by implementing an advanced Bayesian anal
 
 By addressing the limitations of previous studies, our research provides a robust tool for interpreting the intricate nature of gravitational wave observations. This refined approach significantly improves the estimation of the odds ratio for the lensing hypothesis and enhances the reliability of the hypothesis testing process.
 
-## Initial setup
+## Initial setup <a name="Initial-setup"></a>
+
+### Odds ratio calculation
 
 To analyze posterior overlap, consider two gravitational wave (GW) events. The posterior distributions of the parameters for the first and second events are denoted as $P(\theta_1|d_1)$ and $P(\theta_2|d_2)$, respectively. To test if these events are images of the same astrophysical source, we evaluate the hypothesis $H_L$ (lensed) against $H_U$ (unlensed). The odds ratio is employed to quantify the evidence supporting the lensed hypothesis. The probability of the hypothesis $H_L$ being correct given the data from the two events is $P(H_L|{d_1,d_2})$, and for $H_U$ it is $P(H_U|{d_1,d_2})$. The odds ratio is defined as:
 
@@ -27,6 +62,7 @@ where $\mathcal{B}_U^L$ is the Bayes factor and $\mathcal{P}_U^L$ the prior odds
 
 We assume $\mathcal{P}_U^L = 1$ to maintain neutrality between the lensed and unlensed hypotheses, focusing on the influence of the data via the Bayes factor $\mathcal{B}_U^L$ in the odds ratio calculation.
 
+### Bayes factor calculation
 
 The Bayes factor, representing the ratio of the marginal likelihoods of the data under the two hypotheses, is calculated as follows:
 
@@ -50,6 +86,8 @@ $$
 
 The subscript 'astro' indicates that the prior distribution of the parameters reflects the astrophysical context. The prior distribution $P_{pe}(\theta)$ is utilized in parameter estimation for the events. The posterior distributions given the data from the first and second GW events are $P(\theta|d_1)$ and $P(\theta|d_2)$, respectively. The integrands for event 1 and event 2 are combined for mathematical convenience, and to utilize the time delay information in both the numerator and denominator.
 
+### Parameter space
+
 For clarity in the analysis, the intrinsic and extrinsic parameters for the compact binary events are listed below:
 
 
@@ -65,7 +103,7 @@ For clarity in the analysis, the intrinsic and extrinsic parameters for the comp
 | $\delta_1$ | $\delta_2$ | declination | rad |
 
 
-## Factoring out the PE Prior
+### Factoring out the PE Prior
 
 To simplify the integral further, I will make a bold but reasonable assumption that changing the prior distribution of the parameters $P_{pe}(\theta)$ will not affect the posterior distribution of the parameters $P(\theta|d_1)$ and $P(\theta|d_2)$ as long as it is wide enough to cover the parameter distribution and is not biased towards any particular region of the parameter space. With this claim in mind, $P_{pe}(\theta)$ is replaced with multidimensional Uniform Distribution, $P_o(\theta)=1/(\theta_{\text{max}}-\theta_{\text{min}})$. Thus, it can be factored out of the integral and cancels out in the Bayes factor calculation. Now the Bayes factor becomes:
 
@@ -249,7 +287,7 @@ Let's not complicate our life and stick to the following parameter space. -->
 
 Despite what was mentioned in the previous part, re-parameterization is still required as the PDFs needs to transform in a way that multidimensional ellipsiodal gaussian KDE can fit the data in the parameter space. This is related to the sklearn's BayesianGaussianMixture model fitting in the DPGMM model training.
 
-But in the end the parameters are sample in the original parameter space. So, no Jacobian matrix determinant is not required in the final integral.
+But in the end the parameters are sample in the original parameter space. So, Jacobian matrix determinant is not required in the final integral.
 
 Let's consider the following integral from Eqn (20),
 
@@ -280,7 +318,10 @@ $$
 
 $\xi_1\in \{m_{1,1}, m_{2,1}, \alpha_1, \delta_1, \iota_1, d_{L,1}\}$, $\xi_2\in \{m_{1,2}, m_{2,2}, \alpha_2, \delta_2, \iota_2, d_{L,2}\}$ and $\xi\in  \{m_{1,1}, m_{2,1}, \alpha_1, \delta_1, \iota_1, d_{L,1}, m_{1,2}, m_{2,2}, \alpha_2, \delta_2, \iota_2, d_{L,2}\}$.
 
-### Astrophysical prior of lensed events, $P_{astro}(m_{1,1}, m_{2,1}, \alpha_1, \delta_1, \iota_1, d_{L,1}, m_{1,2}, m_{2,2}, \alpha_2, \delta_2, \iota_2, d_{L,2}, \Delta T|H_L)$
+### Astrophysical prior of lensed events
+
+$$P_{astro}(m_{1,1}, m_{2,1}, \alpha_1, \delta_1, \iota_1, d_{L,1}, m_{1,2}, m_{2,2}, \alpha_2, \delta_2, \iota_2, d_{L,2}, \Delta T|H_L)$$
+
 $P_{astro}(\xi,\Delta T|H_L)$: astrophysical prior on the parameters with lensed hypothesis considered. This is for the detectable events. So, the selection effect is already taken into account. The distribution preserves the correlation between the parameters. But it doesn't take into account the correlation between the coalescence time and sky location. 
 
 $$
@@ -304,7 +345,9 @@ P_{astro}(\alpha_1, \delta_1 | H_L)
 \end{align}
 $$
 
-### Posterior distributions, $P(m_{1,1}, m_{2,1}, \alpha_1, \delta_1, \iota_1, d_{L,1}|T_1, d_1)$ and $P(m_{1,2}, m_{2,2}, \alpha_2, \delta_2, \iota_2, d_{L,2}|T_2, d_2)$
+### Posterior distributions
+
+$$P(m_{1,1}, m_{2,1}, \alpha_1, \delta_1, \iota_1, d_{L,1}|T_1, d_1) \text{ and } P(m_{1,2}, m_{2,2}, \alpha_2, \delta_2, \iota_2, d_{L,2}|T_2, d_2)$$
 
 #### First event
 
@@ -326,7 +369,9 @@ P(\theta|d_2) &= P(m_{1,2}, m_{2,2}, \iota_2, d_{L,2}|T_2, d_2) P(\alpha_2, \del
 \end{align}
 $$
 
-### Astrophysical prior of unlensed events, $P_{astro}(m_{1,1}, m_{2,1}, \alpha_1, \delta_1, \iota_1, d_{L,1}, m_{1,2}, m_{2,2}, \alpha_2, \delta_2, \iota_2, d_{L,2}, \Delta T|H_U)$
+### Astrophysical prior of unlensed events
+
+$$P_{astro}(m_{1,1}, m_{2,1}, \alpha_1, \delta_1, \iota_1, d_{L,1}, m_{1,2}, m_{2,2}, \alpha_2, \delta_2, \iota_2, d_{L,2}, \Delta T|H_U)$$
 
 $P_{astro}(\xi,\Delta T|H_U)$: astrophysical prior on the parameters with unlensed hypothesis considered. This is for the detectable events. So, the selection effect is already taken into account. The distribution preserves the correlation between the parameters. But it doesn't take into account the correlation between the coalescence time and sky location.
 
@@ -341,9 +386,9 @@ $$
 In the last step, I have assumed that the right ascension and declination distributions are independent of the other parameters.
 
 
-## Monte-Carlo Integration
+## Numerical method
 
-### Introduction
+### Introduction Monte-Carlo Integration
 
 If $P(x)$ is a normalized probability distribution, then the expectation value of a function $f(x)$ is given by the integral:
 
@@ -367,7 +412,7 @@ The integration in numerator and denominator of the Bayes factor is done using M
     * Prior re-weighting is done to use this joint PDF in the numerator.
 
 
-### Bayes factor
+### Bayes factor, analytical form
 
 $$
 \begin{align}
@@ -403,6 +448,8 @@ I_2 &= \int d\xi P(\xi_1|T_1,d_1) P(\xi_2|T_2,d_2) P_{astro}(\xi,\Delta T|H_U) \
 &\;\;\;\;\;\;\;\; P_{astro}(m_{1,2}, m_{2,2}, d_{L,2}, \iota_2, d_{L,2}, \Delta T_2|H_U) P(\alpha_2, \delta_2 | H_U)
 \end{align}
 $$
+
+### Bayes factor, numerical integration
 
 Numerical integration form of the Bayes factor is,
 
