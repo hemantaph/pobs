@@ -1,220 +1,393 @@
 import os
 import numpy as np
-from .utils import get_param_from_json, save_json, load_json
-import matplotlib.pyplot as plt
-from scipy.stats import gaussian_kde
-import jax.numpy as jnp
-import jax.random as random
-from jax.scipy.stats import gaussian_kde as jax_gaussian_kde
-import corner
-import matplotlib.lines as mlines
-import h5py 
-import pandas as pd
-import json
-import pickle
+from .utils import save_json, load_json
+from .scaler import (
+    uniform_to_gaussian,
+    gaussian_to_uniform,
+    sine_to_gaussian,
+    gaussian_to_sine,
+    scale_to_range,
+    unscale_to_range,
+)
+from sklearn.mixture import BayesianGaussianMixture
 from sklearn.preprocessing import StandardScaler
 
-class ModelGenerator():
-    def __init__(self, 
-        model_name, 
-        data_dict, 
-        param_list=None, 
+from .utils import (
+    load_json,
+    save_json,
+    load_pickle,
+    save_pickle,
+    get_dict_or_file,
+    dir_check,
+    load_data_from_module,
+    save_min_max,
+    data_check_astro_lensed,
+    data_check_astro_lensed_sky,
+    data_check_astro_unlensed,
+    data_check_astro_unlensed_time,
+    data_check_astro_unlensed_sky,
+)
+
+from .meta_dict import meta_dict as meta_dict_all
+
+
+class ModelGenerator:
+    def __init__(
+        self,
+        model_name="posterior1",
+        model_type="posterior1",
+        data_dict=None,  # if provided new model will be generated
         pobs_directory="./pobs_data",
-        model_type="gaussian_kde",
-        path_dict = None,
-        batch_size=100000,
-        create_new=True,
+        # path_dict = None,  # don't allow this for now
+        kde_model_type="dpgmm",
+        create_new=False,
+        num_images=2,
+        kde_args=None,
     ):
+
         self.model_name = model_name
-        self.batch_size = batch_size
-
-        if data_dict is None:
-            raise ValueError("data_dict cannot be None")
-        elif isinstance(data_dict, str):
-            try:
-                data_dict = get_param_from_json(data_dict)
-            except:
-                raise ValueError("data_dict is not a valid json file")
-
-        if param_list is not None:
-            self.param_list = param_list
-            for keys in param_list.keys():
-                del data_dict[keys]
+        self.model_type = model_type
+        self.kde_model_type = kde_model_type
+        self.num_images = num_images
+        self.pobs_directory = dir_check(
+            pobs_directory
+        )  # check if the directory exists, also add '/' at the end
+        if kde_args is None:
+            self.kde_args = {}
         else:
-            self.param_list = list(data_dict.keys())
+            self.kde_args = kde_args
+        self.model = None
+        self.scaler = None
+        self.min_max = None
+        self.create_new = create_new
+
+        data_dict = self.init_data_dict(data_dict)
+        # now I have the data_dict and meta_dict
+        # data_dict is None if the model, scaler and min_max exists
+
+        if (
+            data_dict is not None
+        ):  # this means doesn't model, scaler and min_max exist yet
+            self.scaler = None
+            self.min_max = None
+            self.create_model(data_dict)
+
         self.data_dict = data_dict
 
-        self.pobs_directory = pobs_directory
-        if not os.path.exists(self.pobs_directory):
-            os.makedirs(self.pobs_directory) 
+    def init_data_dict(self, data_dict):
 
-        self.model_path = f"{self.pobs_directory}/model_path_{self.model_name}.pkl"
-        self.scaler_path = f"{self.pobs_directory}/scaler_path_{self.model_name}.pkl"
-        self.min_max_path = f"{self.pobs_directory}/min_max_path_{self.model_name}.pkl"
-
-        self.model_type = model_type
-        if path_dict is None:
-            self.path_dict = {
-                "model_path": self.model_path,
-                "scaler_path": self.scaler_path,
-                "min_max_path": self.min_max_path,
-                "label_list": list(self.param_list),
-                #"bandwidth_factor": self.bandwidth_factor,
-            }
+        # get all the paths
+        self.init_meta_dict()
+        # check new data is provided
+        # if not, check if the model, scaler and min_max exists
+        # if not, get the default data from pobs module
+        # the data should contain appropriate keys and values
+        if data_dict is not None:
+            data_dict = get_dict_or_file(data_dict)
+            return data_dict
         else:
-            if isinstance(path_dict, str):
-                try:
-                    self.path_dict = load_json(path_dict)
-                except:
-                    raise ValueError("path_dict is not a valid json file")
-            elif isinstance(path_dict, dict):
-                self.path_dict = path_dict
+            model_path = self.meta_dict["model_path"]
+            scaler_path = self.meta_dict["scaler_path"]
+            min_max_path = self.meta_dict["min_max_path"]
+            renorm_const_path = self.meta_dict["renorm_const_path"]
+            # check if the paths exists
+            if (
+                os.path.exists(model_path)
+                and os.path.exists(scaler_path)
+                and os.path.exists(min_max_path)
+                and not self.create_new
+            ):
+                print(f"Loading model from {self.meta_dict['model_path']}")
+                self.model = load_pickle(model_path)
+                print(f"Loading scaler from {self.meta_dict['scaler_path']}")
+                self.scaler = load_pickle(scaler_path)
+                print(f"Loading min_max from {self.meta_dict['min_max_path']}")
+                self.min_max = load_json(min_max_path)
+                print(
+                    f"Loading renormalization constant from {self.meta_dict['renorm_const_path']}"
+                )
+                self.renorm_const = load_json(renorm_const_path)
             else:
-                raise ValueError("path_dict should be a string to json path or a dictionary")
-    
+                if self.model_type == "astro_lensed":
+                    print(f"data_dict for {self.model_type} is not provided")
+                    print("getting default astro_lensed data_dict from pobs module")
+                    data_dict = load_data_from_module(
+                        "pobs", "data", "n_lensed_detectable_bbh_po_spin.json"
+                    )
+                    data_dict = data_check_astro_lensed(data_dict)
 
-        # save path dict
-        save_json(f"{self.pobs_directory}/path_dict_{self.model_name}.json", self.path_dict)
-        
-        # save the min and max of the data_dict
-        self.save_min_max()
+                elif self.model_type == "astro_lensed_sky":
+                    print(f"data_dict for {self.model_type} is not provided")
+                    print("getting default astro_lensed data_dict from pobs module")
+                    data_dict = load_data_from_module(
+                        "pobs", "data", "n_lensed_detectable_bbh_po_spin.json"
+                    )
+                    data_dict = data_check_astro_lensed_sky(data_dict)
+                elif self.model_type == "astro_unlensed":
+                    print(f"data_dict for {self.model_type} is not provided")
+                    print("getting default astro_unlensed data_dict from pobs module")
+                    data_dict = load_data_from_module(
+                        "pobs", "data", "n_unlensed_detectable_bbh_po_spin.json"
+                    )
+                    data_dict = data_check_astro_unlensed(data_dict)
+                elif self.model_type == "astro_unlensed_time":
+                    print(f"data_dict for {self.model_type} is not provided")
+                    print("getting default astro_unlensed data_dict from pobs module")
+                    data_dict = load_data_from_module(
+                        "pobs", "data", "n_unlensed_detectable_bbh_po_spin.json"
+                    )
+                    data_dict = data_check_astro_unlensed_time(data_dict)
+                elif self.model_type == "astro_unlensed_sky":
+                    print(f"data_dict for {self.model_type} is not provided")
+                    print("getting default astro_unlensed data_dict from pobs module")
+                    data_dict = load_data_from_module(
+                        "pobs", "data", "n_unlensed_detectable_bbh_po_spin.json"
+                    )
+                    data_dict = data_check_astro_unlensed_sky(data_dict)
 
-        if create_new:
-            self.create_model()
+                else:
+                    raise ValueError(
+                        "data_dict and default model type not prvided.\n Model_type should be one of the following: astro_lensed, astro_lensed_sky, astro_unlensed, astro_unlensed_time, astro_unlensed_sky"
+                    )
 
+                return data_dict
 
-    def save_min_max(self, data_dict=None, filename=None):
+    def mass_scaler(self, data, min_data, max_data, which_type="forward"):
 
-        if data_dict is None:
-            data_dict = self.data_dict.copy()
-        if filename is None:
-            filename = self.min_max_path
+        if which_type == "forward":
+            data_scaled = scale_to_range(data, min_data, max_data)
+            data_scaled = sine_to_gaussian(data_scaled)
+        elif which_type == "backward":
+            data_scaled = gaussian_to_sine(data)
+            data_scaled = unscale_to_range(data_scaled, min_data, max_data)
+        else:
+            raise ValueError("which_type should be either forward or backward")
+        return data_scaled
 
-        min_max = {}
-        for key, value in data_dict.items():
-            min_max[key] = dict(
-                min_data = np.min(value), 
-                max_data = np.max(value),
+    def inclination_scaler(self, data, which_type="forward", **kwargs):
+
+        if which_type == "forward":
+            data_scaled = sine_to_gaussian(data)
+        elif which_type == "backward":
+            data_scaled = gaussian_to_sine(data)
+        else:
+            raise ValueError("which_type should be either forward or backward")
+
+        return data_scaled
+
+    def distance_scaler(self, data, which_type="forward", **kwargs):
+
+        if which_type == "forward":
+            data_scaled = np.log10(data)
+        elif which_type == "backward":
+            data_scaled = 10**data
+        else:
+            raise ValueError("which_type should be either forward or backward")
+
+        return data_scaled
+
+    def time_scaler(self, data, which_type="forward", **kwargs):
+
+        if which_type == "forward":
+            data_scaled = np.log10(data / 86400)
+        elif which_type == "backward":
+            data_scaled = 10 ** (data) * 86400
+        else:
+            raise ValueError("which_type should be either forward or backward")
+
+        return data_scaled
+
+    def ra_scaler(self, data, which_type="forward", **kwargs):
+
+        mu = 0
+        sigma = 1
+        upper_bound = 6.29
+        lower_bound = 0
+
+        if which_type == "forward":
+            data_scaled = uniform_to_gaussian(
+                data,
+                mu=mu,
+                sigma=sigma,
+                upper_bound=upper_bound,
+                lower_bound=lower_bound,
             )
-        save_json(filename, min_max)
-
-    def get_model_scaler_minmax(self, model_path=None, scaler_path=None, min_max_path=None):
-
-        if model_path is None:
-            model_path = self.model_path
-        if scaler_path is None:
-            scaler_path = self.scaler_path
-        if min_max_path is None:
-            min_max_path = self.min_max_path
-        
-        with open(model_path, 'rb') as f:
-            model = pickle.load(f)
-
-        with open(scaler_path, 'rb') as f:
-            scaler = pickle.load(f)
-
-        if min_max_path is not None:
-            min_max = load_json(min_max_path)
+        elif which_type == "backward":
+            data_scaled = gaussian_to_uniform(
+                data,
+                mu=mu,
+                sigma=sigma,
+                upper_bound=upper_bound,
+                lower_bound=lower_bound,
+            )
         else:
-            min_max = None
+            raise ValueError("which_type should be either forward or backward")
 
-        return model, scaler, min_max
+        return data_scaled
 
-    def feature_scaling(self, data_dict=None, save=True, filename=None, call=False):
-        
-        if data_dict is None:
-            data_dict = self.data_dict.copy()
-        if filename is None:
-            filename = self.scaler_path
-
-        data = np.array(list(data_dict.values())).T
-
-        if not call:
-            scaler = StandardScaler()
-            scaled_data = scaler.fit_transform(data)
-        else:
-            with open(filename, 'rb') as f:
-                scaler = pickle.load(f)
-            scaled_data = scaler.transform(data)
-
-        if save:
-            with open(filename, 'wb') as f:
-                pickle.dump(scaler, f)
-
-        return scaled_data, scaler
-
-    def create_model(self, data_dict=None, save=True, filename=None):
+    def scaling(self, data_dict=None, data_list=None, which_type="forward"):
 
         if data_dict is None:
-            data_dict = self.data_dict.copy()
-        if filename is None:
-            filename = self.model_path
-
-        scaled_data, _ = self.feature_scaling(data_dict, save=save)
-        if self.model_type == "gaussian_kde":
-            kde = gaussian_kde(scaled_data.T, bw_method='scott')
-        elif self.model_type == "jax_gaussian_kde":
-            scaled_data = jnp.array(scaled_data)
-            kde = jax_gaussian_kde(scaled_data.T, bw_method='scott')
+            keys_ = self.meta_dict["scaling_param"].keys()
+            # column should correspond to each parameter type
+            data_dict = {key: np.array(data_list[:, i]) for i, key in enumerate(keys_)}
+        elif data_list is None:
+            data_list = np.array([data_dict[key] for key in data_dict.keys()]).T
         else:
-            raise ValueError("model_type should be either 'gaussian_kde' or 'jax_gaussian_kde'")
-        # jax.scipy
+            raise ValueError("Either data_dict or data_list should be provided")
 
-        if save:
-            with open(filename, 'wb') as f:
-                pickle.dump(kde, f)
-
-        #kde.set_bandwidth(bw_method=kde.factor * self.bandwidth_factor)
-
-        return kde
-
-    def resample(self, size=10000, label_list=None, model_path=None, scaler_path=None, min_max_path=None, batch_size=None):
-
-        if model_path is None:
-            model_path = self.model_path
-        if scaler_path is None:
-            scaler_path = self.scaler_path
-        if min_max_path is None:
-            min_max_path = self.min_max_path
-        if label_list is None:
-            label_list = self.path_dict['label_list']
-        if batch_size is None:
-            batch_size = self.batch_size
-            if batch_size > size:
-                batch_size = size
-            
-
-        # get the model, scaler and min_max
-        kde, scaler, min_max = self.get_model_scaler_minmax(model_path, scaler_path, min_max_path)
+        if self.min_max is None:
+            filename = self.meta_dict["min_max_path"]
+            min_max = save_min_max(filename, data_dict)
+            self.min_max = min_max
+        else:
+            min_max = self.min_max
 
         result_dict = {}
-        for i in range(len(label_list)):
-            result_dict[label_list[i]] = np.array([])
+        result_list = []
+        # this for extra scaling besides standard scaling
+        scaling_param = self.meta_dict["scaling_param"]
 
+        # Backward scaling
+        if which_type == "backward":
+            # standard scaling
+            data_list = self.scaler.inverse_transform(data_list)
+            data_dict = {key: data_list[:, i] for i, key in enumerate(data_dict.keys())}
+
+        for key, value in data_dict.items():
+            if scaling_param[key] is not None:
+                result_dict[key] = getattr(self, scaling_param[key])(
+                    data=value,
+                    min_data=min_max[key]["min_data"],
+                    max_data=min_max[key]["max_data"],
+                    which_type=which_type,
+                )
+            else:
+                result_dict[key] = value
+            result_list.append(result_dict[key])
+
+        result_list = np.array(result_list).T
+
+        # check scaler
+        if self.scaler is None:
+            self.scaler = StandardScaler()
+            self.scaler.fit(result_list)
+
+        # Forward scaling
+        if which_type == "forward":
+            # standard scaling
+            result_list = self.scaler.transform(result_list)
+            result_dict = {
+                key: result_list[:, i] for i, key in enumerate(data_dict.keys())
+            }
+
+        return result_dict, result_list
+
+    def create_model(self, data_dict, renormalization=True):
+
+        # each column corresponds to each parameter type
+        # data will be scale according to the meta_dict, dictated by the model_name
+        _, scaled_data = self.scaling(data_dict=data_dict, which_type="forward")
+
+        self.data_dict_x = data_dict
+
+        # use self.kwargs
+        args = dict(
+            n_components=20,
+            covariance_type="full",
+            weight_concentration_prior=1e-2,
+            max_iter=1000,
+            random_state=0,
+        )
+        args.update(self.kde_args)
+
+        self.model = BayesianGaussianMixture(
+            n_components=args["n_components"],
+            covariance_type=args["covariance_type"],
+            weight_concentration_prior=args["weight_concentration_prior"],
+            max_iter=args["max_iter"],
+            random_state=args["random_state"],
+        )
+
+        # fit the model
+        print(f"Fitting the model for {self.model_name}. This may take a while...")
+        self.model.fit(scaled_data)
+
+        # save the model, scaler and min_max
+        print(f"Saving model to {self.meta_dict['model_path']} ")
+        save_pickle(self.meta_dict["model_path"], self.model)
+        print(f"Saving scaler to {self.meta_dict['scaler_path']}")
+        save_pickle(self.meta_dict["scaler_path"], self.scaler)
+        print(f"Saving min_max to {self.meta_dict['min_max_path']}")
+        save_json(self.meta_dict["min_max_path"], self.min_max)
+
+        # find renormalization constant
+        if renormalization:
+            self.renormalization()
+
+    def renormalization(self, batch_size=1000000):
+
+        min_max_list = []
+        for _, value in self.min_max.items():
+            min_max_list.append([value["min_data"], value["max_data"]])
+
+        min_max_list = np.array(min_max_list).T
+        _, min_max_list = self.scaling(data_list=min_max_list, which_type="forward")
+        num_ = min_max_list.shape[1]
+
+        data = []
+        norm_ = 1.0
+        for i in range(num_):
+            min_data = min_max_list[:, i].min()
+            max_data = min_max_list[:, i].max()
+            norm_ *= max_data - min_data
+
+            data.append(np.random.uniform(min_data, max_data, batch_size))
+
+        data = np.array(data).T
+        pdf = np.exp(self.model.score_samples(data))
+
+        self.renorm_const = np.mean(pdf) * norm_
+        print(
+            f"Saving renormalization constant to {self.meta_dict['renorm_const_path']}"
+        )
+        save_json(self.meta_dict["renorm_const_path"], self.renorm_const)
+
+    def resample(self, size=10000):
+
+        model = self.model
+        min_max = self.min_max
+        label_list = list(self.meta_dict["scaling_param"].keys())
+
+        result_dict = {}
+        for key in label_list:
+            result_dict[key] = np.array([])
+
+        # loop until we get the desired size
+        batch_size = size
         while True:
-
             # generate random data
-            # kde.set_bandwidth(bw_method=kde.factor * self.bandwidth_factor)
-            if self.model_type == "gaussian_kde":
-                data = kde.resample(batch_size).T
-            elif self.model_type == "jax_gaussian_kde":
-                key = random.PRNGKey(seed=np.random.randint(0, 1000000))
-                data = kde.resample(key, (batch_size,)).T
-                data = np.array(data)
+            data = model.sample(batch_size)[0]
+            # unscale the data
+            # each column corresponds to each parameter type
+            _, unsclaed_data = self.scaling(data_list=data, which_type="backward")
 
-            # inverse transform the data
-            data = scaler.inverse_transform(data)
-
+            # making sure the data is within the range
             j = 0
-            idx = np.ones(data.shape[0], dtype=bool)
-            for key, value in min_max.items():
-                min_data = value['min_data']
-                max_data = value['max_data']
-                data_ = data[:, j]
-                idx &= (data_<min_data) | (data_>max_data)
-            
-            for i in range(len(label_list)):
-                result_dict[label_list[i]] = np.concatenate([result_dict[label_list[i]], data[:, i][~idx]])
+            idx = np.ones(unsclaed_data.shape[0], dtype=bool)
+            # keys of min_max should be the same as label_list
+            for key in label_list:
+                min_data = min_max[key]["min_data"]
+                max_data = min_max[key]["max_data"]
+                data_ = unsclaed_data[:, j]
+                idx = idx & (data_ > min_data) & (data_ < max_data)
+                j += 1
+
+            # fill up the result in each loop
+            for i, key in enumerate(label_list):
+                result_dict[key] = np.concatenate(
+                    [result_dict[key], unsclaed_data[:, i][idx]]
+                )
 
             final_size = result_dict[label_list[0]].shape[0]
             batch_size = (size - final_size) + 1
@@ -225,110 +398,36 @@ class ModelGenerator():
 
         return result_dict
 
-    def random(self, size=10000, min_max_dict=None):
+    def pdf(self, data_dict, renormalization=True):
 
-        if min_max_dict is None:
-            min_max_dict = load_json(self.min_max_path)
-
-        result_dict = {}
-        for key, value in min_max_dict.items():
-            min_data = value['min_data']
-            max_data = value['max_data']
-            result_dict[key] = np.random.uniform(min_data, max_data, size)
-
-        return result_dict
-
-    def pdf(self, data_dict, extra_key=False):
-
-        model_path = self.model_path
-        scaler_path = self.scaler_path
-        min_max_path = self.min_max_path
-        
-        if extra_key:
-            label_list = self.path_dict['label_list']
-            key_list = list(data_dict.keys())
-            # delete the keys not in label_list
-            for key in key_list:
-                if key not in label_list:
-                    del data_dict[key]
-
-        # data = np.array(list(data_dict.values())).T
-        
-        scaled_data, _ = self.feature_scaling(data_dict, save=False, call=True, filename=scaler_path)
-        
-        with open(model_path, 'rb') as f:
-            KDE = pickle.load(f)
-        # KDE.set_bandwidth(bw_method=KDE.factor * self.bandwidth_factor)
+        _, scaled_data = self.scaling(data_dict, which_type="forward")
 
         # pdf
-        if self.model_type == "gaussian_kde":
-            pdf = KDE.pdf(scaled_data.T)
-        elif self.model_type == "jax_gaussian_kde":
-            scaled_data = jnp.array(scaled_data)
-            pdf = KDE.pdf(scaled_data.T)
-            pdf = np.array(pdf)
-        else:
-            raise ValueError("model_type should be either 'gaussian_kde' or 'jax_gaussian_kde'")
+        pdf = np.exp(self.model.score_samples(scaled_data))
+        if renormalization:
+            pdf = pdf / self.renorm_const
 
-        # get min and max
-        min_max = load_json(min_max_path)
-
-        for key, value in min_max.items():
-            min_data = value['min_data']
-            max_data = value['max_data']
-            idx = (data_dict[key]<min_data) | (data_dict[key]>max_data)
-
-            pdf[idx] = 0
+        # # get min and max data
+        # for key, value in self.min_max.items():
+        #     min_data = value['min_data']
+        #     max_data = value['max_data']
+        #     idx = (data_dict[key]<min_data) | (data_dict[key]>max_data)
+        #     pdf[idx] = 0.0
 
         return pdf
 
-    def plot(self, data_dict1, data_dict2=None, labels=None):
+    def init_meta_dict(self):
 
-        if labels is None:
-            labels = self.path_dict['label_list']
-
-        data_1 = []
-        for key, value in data_dict1.items():
-            data_1.append(value)
-        data_1 = np.array(data_1).T
-
-        if data_dict2 is not None:
-
-            data_2 = []
-            for key, value in data_dict2.items():
-                data_2.append(value)
-            data_2 = np.array(data_2).T
-
-            # plot the corner plot
-            fig = corner.corner(data_2 ,color = 'C0', density = True, plot_datapoints=False, label='train', hist_kwargs={'density':True})
-
-            corner.corner(data_1, fig=fig,color='C1',density=True, labels=labels, show_titles=True, plot_datapoints=False, quantiles=[0.05, 0.5, 0.95], hist_kwargs={'density':True})
-
-            colors = ['C0', 'C1']
-            sample_labels = ['data_2', 'data_1']
-            plt.legend(
-                handles=[
-                    mlines.Line2D([], [], color=colors[i], label=sample_labels[i])
-                    for i in range(2)
-                ],
-                fontsize=20, frameon=False,
-                bbox_to_anchor=(1, data_1.shape[1]), loc="upper right"
-            )
-            plt.gcf().set_size_inches(20, 20)           
-        else:
-            corner.corner(
-                data_1, 
-                color='C1',
-                density=True, 
-                labels=labels, 
-                show_titles=True, 
-                plot_datapoints=False, 
-                quantiles=[0.05, 0.5, 0.95], 
-                hist_kwargs={'density':True},
-                )
-
-
-
-
-
-        
+        self.meta_dict = meta_dict_all(self.num_images)[self.model_type]
+        self.meta_dict["model_path"] = (
+            f"{self.pobs_directory}model_{self.model_name}.pkl"
+        )
+        self.meta_dict["scaler_path"] = (
+            f"{self.pobs_directory}scaler_{self.model_name}.pkl"
+        )
+        self.meta_dict["min_max_path"] = (
+            f"{self.pobs_directory}min_max_{self.model_name}.json"
+        )
+        self.meta_dict["renorm_const_path"] = (
+            f"{self.pobs_directory}renorm_const_{self.model_name}.json"
+        )

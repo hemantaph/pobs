@@ -5,8 +5,8 @@
 - [Posterior overlap](#posterior-overlap)
   - [Contents](#contents)
   - [Introduction](#introduction)
-    - [Posterior Overlap and Hypothesis Testing in Lensed Gravitational Wave Astronomy ](#posterior-overlap-and-hypothesis-testing-in-lensed-gravitational-wave-astronomy-)
-  - [Initial setup ](#initial-setup-)
+    - [Posterior Overlap and Hypothesis Testing in Lensed Gravitational Wave Astronomy](#posterior-overlap-and-hypothesis-testing-in-lensed-gravitational-wave-astronomy)
+  - [Initial setup](#initial-setup)
     - [Odds ratio calculation](#odds-ratio-calculation)
     - [Bayes factor calculation](#bayes-factor-calculation)
     - [Parameter space](#parameter-space)
@@ -17,6 +17,7 @@
     - [Part 2: Distance](#part-2-distance)
     - [Part 3: KDE scaling](#part-3-kde-scaling)
   - [Renormalization](#renormalization)
+    - [Steps for Normalizing KDE](#steps-for-normalizing-kde)
   - [Marginal likelihood for Lensed hypothesis](#marginal-likelihood-for-lensed-hypothesis)
     - [Astrophysical prior of lensed events](#astrophysical-prior-of-lensed-events)
     - [Posterior distributions](#posterior-distributions)
@@ -30,10 +31,14 @@
       - [Numerator](#numerator)
       - [Denominator](#denominator)
     - [Bayes factor, numerical integration](#bayes-factor-numerical-integration)
+  - [Extending posterior overlap to four images](#extending-posterior-overlap-to-four-images)
+    - [Bayes factor, analytical form](#bayes-factor-analytical-form-1)
+      - [Numerator](#numerator-1)
+      - [Denominator](#denominator-1)
 
 ## Introduction
 
-### Posterior Overlap and Hypothesis Testing in Lensed Gravitational Wave Astronomy <a name="Introduction"></a>
+### Posterior Overlap and Hypothesis Testing in Lensed Gravitational Wave Astronomy 
 
 Gravitational wave (GW) astronomy has emerged as a pivotal field in understanding the cosmos, particularly through the observation of events such as compact binary mergers. A major scientific challenge within this domain is distinguishing between lensed and unlensed gravitational wave events. Lensed events occur when a massive body, like a galaxy or a cluster of galaxies, bends the path of the gravitational waves emanating from a distant astronomical event, such as a binary merger, causing multiple detectable signals from what is essentially a single event. Conversely, unlensed events involve signals that reach observers without such interference. This distinction is crucial for accurate cosmological measurements and understanding the distribution of matter in the universe.
 
@@ -43,7 +48,7 @@ Our study addresses these deficiencies by implementing an advanced Bayesian anal
 
 By addressing the limitations of previous studies, our research provides a robust tool for interpreting the intricate nature of gravitational wave observations. This refined approach significantly improves the estimation of the odds ratio for the lensing hypothesis and enhances the reliability of the hypothesis testing process.
 
-## Initial setup <a name="Initial-setup"></a>
+## Initial setup 
 
 ### Odds ratio calculation
 
@@ -207,6 +212,17 @@ $$
 
 The integral is now over the joint probability distribution of the time delay and the remaining parameters. The KDE is the kernel density estimation created using the $\xi$ and re-parameterised variable $\Delta t$.
 
+This exercise shows that if the parameter volume does not change, in this case just a shift of time parameter, the Jacobian matrix determinant is not required in the final integral. The mathematics can be exended to more lensed image condition as follows. This concept will be revisited in one of the later section.
+
+$$
+\begin{align}
+\text{I} &= P(T_1|H) \int P(\xi_1|T_1, d_1)\; P(\xi_2|T_2, d_2)\; P(\xi_3|T_3, d_3) P(\xi_4|T_4, d_4)  \\ \nonumber
+& \;\;\;\;\;\;\;\; P(\Delta T_{12},\Delta T_{13},\Delta T_{14}, \xi| H) \, d\xi \\
+\end{align}
+$$
+
+where $\Delta T_{ij} = T_i - T_j$ and $\xi_3, \xi_4 \in \xi$. The subscript $i/j$ represents the $i^{th}/j^{th}$ event or image. Note that $\Delta T_{12},\Delta T_{13},\Delta T_{14}, \xi$ are correlated for the lensed images.
+
 ### Part 2: Distance
 
 What if the transformation is not just a shift in the variable but a scaling? For example, consider the transformation of the luminosity distance, $d_{L,2} \rightarrow \Delta \mu .d_{L,1}$, where $\Delta \mu=d_{L,2}/d_{L,1}$. If they are lensed images, then $\Delta d_L=\sqrt{|\mu_2/\mu_1|}$. Let's consider similar integral to that of Eqn(19).
@@ -294,16 +310,47 @@ Let's consider the following integral from Eqn (20),
 $$
 \begin{align}
 \text{I} &=  P(T_1|H) \int \text{KDE}(\xi_1|T_1, d_1)\; \text{KDE}(\xi_2|T_2, d_2)   \text{KDE}(\Delta T, \xi| H) \, d\xi \\ \nonumber
-&=  P(T_1|H) \int \text{KDE}'(T(\xi_1)|T_1, d_1)\; \text{KDE}(T(\xi_2)|T_2, d_2)   \text{KDE}'(T(\Delta T,\xi)| H) \, d\xi \\
+&=  P(T_1|H) \int \text{KDE}'(R_1(\xi_1)|T_1, d_1)\; \text{KDE}(R_2(\xi_2)|T_2, d_2)   \text{KDE}'(R_3(\Delta T,\xi)| H) \, d\xi \\
 \end{align}
 $$
 
-The prime in $\text{KDE}'$ represents the re-parameterized KDE. These KDEs are created using the re-parameterized variables and $T$ represents the re-parameterization function or mapping. In the following sections, such kind of intergral will be solved numerically using monte-carlo sampling.
+The prime in $\text{KDE}'$ represents the re-parameterized KDE. These KDEs are created using the re-parameterized variables and $R_{1,2,3}$ represents the re-parameterization or mapping functions. In the following sections, such kind of intergral will be solved numerically using monte-carlo sampling.
 
 ## Renormalization
 
-The data needs to be constrained within the bounds of the parameter space. For example, the inclination angle is between $0$ and $\pi$. After the KDE is created, proper bounds are set and the KDE is renormalized numerically. This is done to ensure that the KDE is a proper probability distribution.
+Renormalization ensures that Kernel Density Estimation (KDE) remains a valid probability distribution within the parameter space. This necessity arises because multidimensional KDE does not always perfectly conform to the boundaries of the parameter space, resulting in a distribution that approximates the data smoothly.
 
+### Steps for Normalizing KDE:
+
+1. **Data Distribution**: Begin with a distribution $P(\xi|H)$ given a hypothesis $H$.
+
+2. **Reparameterization**: Transform $\xi$ to $\xi'$ using $R(\xi) = \xi'$.
+
+3. **Normalized KDE**: KDE created in the reparameterized space should already been normalized to 1, within some bounds [$\xi'_\text{min}$, $\xi'_\text{max}$].
+
+   $$
+   \int_{\xi'_\text{min}}^{\xi'_\text{max}} \text{KDE}'(\xi'| H) \, d\xi' = 1
+   $$
+
+4. **Constraining Parameter Space**: Set the limits $[\xi_\text{min}, \xi_\text{max}]$ in the original parameter space and convert them to the reparameterized space $[\xi''_\text{min}, \xi''_\text{max}]$. Now, compute the renormalization factor $N_{\xi'}$ as follows:
+
+   $$
+   N_{\xi'} = \int_{\xi''_\text{min}}^{\xi''_\text{max}} P(\xi'| H) \, d\xi' = \left< \frac{\text{KDE}'(\xi'| H)}{P_o(\xi')} \right>_{\xi' \in P_o(\xi')}
+   $$
+
+   where $P_o(\xi')$ is the uniform distribution over the parameter space.
+
+5. **Final KDE Formulation**: Adjust the KDE to account for the normalization:
+   $$
+   \text{KDE}''(\xi'| H) = \frac{\text{KDE}'(\xi'| H)}{N_{\xi'}}
+   $$
+
+6. **Application**: Incorporate the renormalized KDE into the integral for calculations:
+   $$
+   \text{I} =  \frac{P(T_1|H)}{N_{\xi'_1} N_{\xi'_2} N_{\xi'}} \int \text{KDE}'(R_1(\xi_1)|T_1, d_1) \; \text{KDE}'(R_2(\xi_2)|T_2, d_2) \; \text{KDE}'(R_3(\Delta T, \xi)| H) \, d\xi
+   $$
+
+This process ensures that KDE remains accurate and representative of the parameter space, properly normalized even after transformations.
 
 ## Marginal likelihood for Lensed hypothesis
 
@@ -430,7 +477,7 @@ I_1 &= \int d\xi P(\xi_1|T_1,d_1) P(\xi_2|T_2,d_2) P_{astro}(\xi,\Delta T|H_L) \
 &\;\;\;\;\;\;\;\; P(m_1, m_2, \iota, d_{L,1}|T_1, d_1) P(\alpha, \delta | T_1, d_1) \times \\ \nonumber
 &\;\;\;\;\;\;\;\; P(m_1, m_2, \iota, d_{L,2}|T_2, d_2) P(\alpha, \delta | T_2, d_2) \times \\ \nonumber
 &\;\;\;\;\;\;\;\; P_{astro}(m_{1}, m_{2}, \iota, d_{L,1}, d_{L,2}, \Delta T|H_L) P_{astro}(\alpha, \delta | H_L) \times \\ \nonumber
-&\;\;\;\;\;\;\;\; P_{comb}(m_1, m_2, \alpha, \delta, \iota, d_{L,1}, d_{L,2}|T_1, d_1, T_2, d_2) \div \\ \nonumber
+&\;\;\;\;\;\;\;\; P_{comb}(m_1, m_2, \iota, d_{L,1}, d_{L,2}|T_1, d_1, T_2, d_2) P_{comb}(\alpha, \delta | T_1, d_1, T_2, d_2) \div \\ \nonumber
 &\;\;\;\;\;\;\;\; \{P_{comb}(m_1, m_2, \iota, d_{L,1}, d_{L,2}|T_1, d_1, T_2, d_2) P_{comb}(\alpha, \delta | T_1, d_1, T_2, d_2)\} \\
 \end{align}
 $$
@@ -445,9 +492,11 @@ I_2 &= \int d\xi P(\xi_1|T_1,d_1) P(\xi_2|T_2,d_2) P_{astro}(\xi,\Delta T|H_U) \
 &\;\;\;\;\;\;\;\;P(m_{1,1}, m_{2,1}, \iota_1, d_{L,1}|T_1, d_1) P(\alpha_1, \delta_1 | T_1, d_1) \times \\ \nonumber
 &\;\;\;\;\;\;\;\; P(m_{1,2}, m_{2,2}, \iota_2, d_{L,2}|T_2, d_2) P(\alpha_2, \delta_2 | T_2, d_2) \times \\ \nonumber
 &\;\;\;\;\;\;\;\; P_{astro}(m_{1,1}, m_{2,1}, \iota_1, d_{L,1}|H_U) P(\alpha_1, \delta_1 | H_U) \times \\ \nonumber
-&\;\;\;\;\;\;\;\; P_{astro}(m_{1,2}, m_{2,2}, d_{L,2}, \iota_2, d_{L,2}, \Delta T_2|H_U) P(\alpha_2, \delta_2 | H_U)
+&\;\;\;\;\;\;\;\; P_{astro}(m_{1,2}, m_{2,2},  \iota_2, d_{L,2}, \Delta T|H_U) P(\alpha_2, \delta_2 | H_U)
 \end{align}
 $$
+
+Note that $P_{astro}(m_{1,2}, m_{2,2},  \iota_2, d_{L,2}, \Delta T|H_U)$ can also be written as $P_{astro}(m_{1,2}, m_{2,2}, \iota_2, d_{L,2}|H_U) P_{astro}(\Delta T|H_U)$, as the time delay is independent of the other parameters for unlensed hypothesis. 
 
 ### Bayes factor, numerical integration
 
@@ -462,15 +511,95 @@ $$
 &\; P_{astro}(m_{1}, m_{2}, \iota, d_{L,1}, d_{L,2}, \Delta T|H_L) P_{astro}(\alpha, \delta | H_L) \div \\ \nonumber
 &\; \{P_{comb}(m_1, m_2, \iota, d_{L,1}, d_{L,2}|T_1, d_1, T_2, d_2) P_{comb}(\alpha, \delta | T_1, d_1, T_2, d_2)\} \\ \nonumber
 &\bigg>_{ m_1, m_2, \iota, d_{L,1}, d_{L,2} \in P_{comb}(m_1, m_2, \iota, d_{L,1}, d_{L,2}|T_1, d_1, T_2, d_2),\; \alpha, \delta \in P_{comb}(\alpha, \delta | T_1, d_1, T_2, d_2)} \\ \nonumber
-& \Bigg] \div \Bigg[\\ \nonumber
+& \Bigg] \div \Bigg[P_{astro}(\Delta T|H_U) \times \\ \nonumber
 & \bigg<\\ \nonumber
 &\; P_{astro}(m_{1,1}, m_{2,1}, \iota_1, d_{L,1}|H_U) P(\alpha_1, \delta_1 | H_U) \times \\ \nonumber
-&\; P_{astro}(m_{1,2}, m_{2,2}, d_{L,2}, \iota_2, d_{L,2}, \Delta T_2|H_U) P(\alpha_2, \delta_2 | H_U) \div \\ \nonumber
+&\; P_{astro}(m_{1,2}, m_{2,2}, \iota_2, d_{L,2}|H_U) P(\alpha_2, \delta_2 | H_U) \\ \nonumber
 &\bigg>_{ m_{1,1}, m_{2,1}, \iota_1, d_{L,1}\in P(m_{1,1}, m_{2,1}, \iota_1, d_{L,1}|T_1, d_1),\; \alpha_1, \delta_1 \in P(\alpha_1, \delta_1 | T_1, d_1),}\\ \nonumber
 &_{\; m_{1,2}, m_{2,2}, \iota_2, d_{L,2}\in P(m_{1,2}, m_{2,2}, \iota_2, d_{L,2}|T_2, d_2),\; \alpha_1, \delta_1 \in P(\alpha_2, \delta_2 | T_2, d_2)} \\ \nonumber
 \Bigg]& 
 \end{align}
 $$
+
+## Extending posterior overlap to four images
+
+### Bayes factor, analytical form
+
+Starting from Eqn(21), we can write the integral for the four images as,
+
+#### Numerator
+
+$$
+\begin{align}
+I_1 &= \int d\xi P(\xi_1|T_1,d_1) P(\xi_2|T_2,d_2) P(\xi_3|T_3,d_3) P(\xi_4|T_4,d_4) \times \\ \nonumber 
+&\;\;\;\;\;\;\;\; P_{astro}(\xi,\Delta T_{12}, \Delta T_{13}, \Delta T_{14}|H_L) \\
+
+&= \int dm_{1}\, dm_{2}\, d\iota\, dd_{L,1}\, dd_{L,2} \, dd_{L,3}\, dd_{L,4} \, d\alpha\, d\delta \times \\ \nonumber
+&\;\;\;\;\;\;\;\; P(m_1, m_2, \iota, d_{L,1}|T_1, d_1) P(\alpha, \delta | T_1, d_1) \times \\ \nonumber
+&\;\;\;\;\;\;\;\; P(m_1, m_2, \iota, d_{L,2}|T_2, d_2) P(\alpha, \delta | T_2, d_2) \times \\ \nonumber
+&\;\;\;\;\;\;\;\; P(m_1, m_2, \iota, d_{L,3}|T_3, d_3) P(\alpha, \delta | T_3, d_3) \times \\ \nonumber
+&\;\;\;\;\;\;\;\; P(m_1, m_2, \iota, d_{L,4}|T_4, d_4) P(\alpha, \delta | T_4, d_4) \times \\ \nonumber
+&\;\;\;\;\;\;\;\; P_{astro}(m_{1}, m_{2}, \iota, d_{L,1}, d_{L,2}, d_{L,3}, d_{L,4},\Delta T_{12}, \Delta T_{13}, \Delta T_{14}|H_L) P_{astro}(\alpha, \delta | H_L) \times \\ \nonumber
+&\;\;\;\;\;\;\;\; P_{comb}(m_1, m_2, \alpha, \delta, \iota, d_{L,1}, d_{L,2}, d_{L,3}, d_{L,4}|T_1, d_1, T_2, d_2, T_3, d_3, T_4, d_4) \div \\ \nonumber
+&\;\;\;\;\;\;\;\; \{P_{comb}(m_1, m_2, \iota, d_{L,1}, d_{L,2}, d_{L,3}, d_{L,4}|T_1, d_1, T_2, d_2, T_3, d_3, T_4, d_4) \times\\ \nonumber 
+&\;\;\;\;\;\;\;\; P_{comb}(\alpha, \delta | T_1, d_1, T_2, d_2, T_3, d_3, T_4, d_4)\} \\
+\end{align}
+$$
+
+#### Denominator
+
+$$
+\begin{align}
+I_2 &= \int d\xi P(\xi_1|T_1,d_1) P(\xi_2|T_2,d_2) P(\xi_3|T_3,d_3) P(\xi_4|T_4,d_4) \times \\ \nonumber
+&\;\;\;\;\;\;\;\; P_{astro}(\xi,\Delta T_{12}, \Delta T_{13}, \Delta T_{14}|H_U) \\
+&= \int dm_{1,1}\, dm_{2,1}\, d\iota_1\, dd_{L,1}\, d\alpha_1\, d\delta_1 \times \\ \nonumber
+&\;\;\;\;\;\;\;\; dm_{1,2}\, dm_{2,2}\, d\iota_2\, dd_{L,2}\, d\alpha_2\, d\delta_2 \times \\ \nonumber
+&\;\;\;\;\;\;\;\; dm_{1,3}\, dm_{2,3}\, d\iota_3\, dd_{L,3}\, d\alpha_3\, d\delta_3 \times \\ \nonumber
+&\;\;\;\;\;\;\;\; dm_{1,4}\, dm_{2,4}\, d\iota_4\, dd_{L,4}\, d\alpha_4\, d\delta_4 \times \\ \nonumber
+&\;\;\;\;\;\;\;\; P(m_{1,1}, m_{2,1}, \iota_1, d_{L,1}|T_1, d_1) P(\alpha_1, \delta_1 | T_1, d_1) \times \\ \nonumber
+&\;\;\;\;\;\;\;\; P(m_{1,2}, m_{2,2}, \iota_2, d_{L,2}|T_2, d_2) P(\alpha_2, \delta_2 | T_2, d_2) \times \\ \nonumber
+&\;\;\;\;\;\;\;\; P(m_{1,3}, m_{2,3}, \iota_3, d_{L,3}|T_3, d_3) P(\alpha_3, \delta_3 | T_3, d_3) \times \\ \nonumber
+&\;\;\;\;\;\;\;\; P(m_{1,4}, m_{2,4}, \iota_4, d_{L,4}|T_4, d_4) P(\alpha_4, \delta_4 | T_4, d_4) \times \\ \nonumber
+&\;\;\;\;\;\;\;\; P_{astro}(m_{1,1}, m_{2,1}, \iota_1, d_{L,1}|H_U) P(\alpha_1, \delta_1 | H_U) \times \\ \nonumber
+&\;\;\;\;\;\;\;\; P_{astro}(m_{1,2}, m_{2,2},  \iota_2, d_{L,2}, \Delta T_{12}|H_U) P(\alpha_2, \delta_2 | H_U) \times \\ \nonumber
+&\;\;\;\;\;\;\;\; P_{astro}(m_{1,3}, m_{2,3}, \iota_3, d_{L,3}, \Delta T_{13}|H_U) P(\alpha_3, \delta_3 | H_U) \times \\ \nonumber
+&\;\;\;\;\;\;\;\; P_{astro}(m_{1,4}, m_{2,4}, \iota_4, d_{L,4}, \Delta T_{14}|H_U) P(\alpha_4, \delta_4 | H_U) \\
+\end{align}
+$$
+
+Bayes factor is calculated using the following formula,
+
+$$
+\begin{align}
+\mathcal{B}_U^L = \Bigg[&\\ \nonumber
+& \bigg< \\ \nonumber
+&\; P(m_1, m_2, \iota, d_{L,1}|T_1, d_1) P(\alpha, \delta | T_1, d_1) \times \\ \nonumber
+&\; P(m_1, m_2, \iota, d_{L,2}|T_2, d_2) P(\alpha, \delta | T_2, d_2) \times \\ \nonumber
+&\; P(m_1, m_2, \iota, d_{L,3}|T_3, d_3) P(\alpha, \delta | T_3, d_3) \times \\ \nonumber
+&\; P(m_1, m_2, \iota, d_{L,4}|T_4, d_4) P(\alpha, \delta | T_4, d_4) \times \\ \nonumber
+&\; P_{astro}(m_{1}, m_{2}, \iota, d_{L,1}, d_{L,2}, d_{L,3}, d_{L,4},\Delta T_{12}, \Delta T_{13}, \Delta T_{14}|H_L) P_{astro}(\alpha, \delta | H_L) \div \\ \nonumber
+&\; \{P_{comb}(m_1, m_2, \iota, d_{L,1}, d_{L,2}, d_{L,3}, d_{L,4}|T_1, d_1, T_2, d_2, T_3, d_3, T_4, d_4) \times \\ \nonumber
+&\; \; P_{comb}(\alpha, \delta | T_1, d_1, T_2, d_2, T_3, d_3, T_4, d_4)\} \\ \nonumber
+&\bigg>_{ m_1, m_2, \iota, d_{L,1}, d_{L,2}, d_{L,3}, d_{L,4} \in P_{comb}(m_1, m_2, \iota, d_{L,1}, d_{L,2}, d_{L,3}, d_{L,4}|T_1, d_1, T_2, d_2, T_3, d_3, T_4, d_4),} \\ \nonumber
+&_{\;\;\;\, \alpha, \delta \in P_{comb}(\alpha, \delta | T_1, d_1, T_2, d_2, T_3, d_3, T_4, d_4)} \\ \nonumber
+& \Bigg] \div \Bigg[ P(\Delta T_{12}|H_U) P(\Delta T_{13}|H_U) P(\Delta T_{14}|H_U)  \times \\ \nonumber
+& \bigg<\\ \nonumber
+&\; P_{astro}(m_{1,1}, m_{2,1}, \iota_1, d_{L,1}|H_U) P(\alpha_1, \delta_1 | H_U) \times \\ \nonumber
+&\; P_{astro}(m_{1,2}, m_{2,2},  \iota_2, d_{L,2}|H_U) P(\alpha_2, \delta_2 | H_U) \times \\ \nonumber
+&\; P_{astro}(m_{1,3}, m_{2,3}, \iota_3, d_{L,3}|H_U) P(\alpha_3, \delta_3 | H_U) \times \\ \nonumber
+&\; P_{astro}(m_{1,4}, m_{2,4}, \iota_4, d_{L,4}|H_U) P(\alpha_4, \delta_4 | H_U) \\ \nonumber
+&\bigg>_{ m_{1,1}, m_{2,1}, \iota_1, d_{L,1}\in P(m_{1,1}, m_{2,1}, \iota_1, d_{L,1}|T_1, d_1),\; \alpha_1, \delta_1 \in P(\alpha_1, \delta_1 | T_1, d_1),}\\ \nonumber
+&_{\;\;\;\, m_{1,2}, m_{2,2}, \iota_2, d_{L,2}\in P(m_{1,2}, m_{2,2}, \iota_2, d_{L,2}|T_2, d_2),\; \alpha_1, \delta_1 \in P(\alpha_2, \delta_2 | T_2, d_2),}\\ \nonumber
+&_{\;\;\;\, m_{1,3}, m_{2,3}, \iota_3, d_{L,3}\in P(m_{1,3}, m_{2,3}, \iota_3, d_{L,3}|T_3, d_3),\; \alpha_1, \delta_1 \in P(\alpha_3, \delta_3 | T_3, d_3),}\\ \nonumber
+&_{\;\;\;\, m_{1,4}, m_{2,4}, \iota_4, d_{L,4}\in P(m_{1,4}, m_{2,4}, \iota_4, d_{L,4}|T_4, d_4),\; \alpha_1, \delta_1 \in P(\alpha_4, \delta_4 | T_4, d_4)} \\ \nonumber
+\Bigg]&
+\end{align}
+$$
+
+
+
+
+
 
 <!-- Prior probability distributions from where the samples are drawn are listed below:
 

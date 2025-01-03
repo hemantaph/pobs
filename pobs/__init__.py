@@ -15,11 +15,11 @@ __file__ = os.path.abspath(__file__)
 
 from .pobs import *
 from .njit_functions import *
-from .modelgenerator import *
 from .utils import *
 from .mp import *
 from .scaler import *
-from .modelgenerator_dpgmm import *
+from .modelgenerator import *
 from .data_check import *
 # import data directory
 from . import data
+from . import meta_dict
